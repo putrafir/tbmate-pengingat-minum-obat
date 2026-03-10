@@ -69,6 +69,7 @@ class AlarmService {
         wakeUpScreen: true,
         fullScreenIntent: true,
         locked: true,
+        icon: 'resource://drawable/tb_icon',
         autoDismissible: false,
         customSound: 'resource://raw/amba',
       ),
