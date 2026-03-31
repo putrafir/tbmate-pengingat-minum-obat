@@ -94,59 +94,78 @@ class _LoginpageState extends State<Loginpage> {
 
   Future<void> _loginWithGoogle() async {
     setState(() => isLoading = true);
-    final userCredential = await authService.signInWithGoogle();
-    setState(() => isLoading = false);
 
-    if (userCredential != null) {
-      final user = userCredential.user;
-      final usersRef = FirebaseFirestore.instance.collection('users');
+    try {
+      final userCredential = await authService.signInWithGoogle();
 
-      // 🔹 Cek apakah user sudah ada di Firestore
-      final doc = await usersRef.doc(user!.uid).get();
+      if (userCredential != null) {
+        final user = userCredential.user;
+        final usersRef = FirebaseFirestore.instance.collection('users');
 
-      if (!doc.exists) {
-        final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
-        await usersRef.doc(user.uid).set({
-          'uniqueId': uniqueId,
-          'email': user.email,
-          'role': null,
-          'nickName': user.displayName ?? '',
-          'ageGroup': null,
-          'weight': null,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
+        // 🔹 Cek apakah user sudah ada di Firestore
+        final doc = await usersRef.doc(user!.uid).get();
 
-      // 🔹 Ambil data user
-      final userData = (await usersRef.doc(user.uid).get()).data();
-      final role = userData?['role'];
-
-      if (role == null) {
-        context.go('/input-role');
-      } else if (role.toString().toUpperCase() == 'PMO') {
-        if (userData?['nickName'] == null || userData?['nickName'] == '') {
-          context.go('/input-name');
-        } else {
-          context.go('/pmo-main-screen');
+        if (!doc.exists) {
+          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+          await usersRef.doc(user.uid).set({
+            'uniqueId': uniqueId,
+            'email': user.email,
+            'role': null,
+            'nickName': user.displayName ?? '',
+            'ageGroup': null,
+            'weight': null,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
         }
-      } else if (role.toString().toUpperCase() == 'PASIEN') {
-        if (userData?['nickName'] == null || userData?['nickName'] == '') {
-          context.go('/input-name');
-        } else if (userData?['ageGroup'] == null) {
-          context.go('/input-usia');
-        } else if (userData?['weight'] == null) {
-          context.go('/input-weight');
-        } else {
-          context.go('/main-screen');
-        }
-      }
 
+        // 🔹 Ambil data user
+        final userData = (await usersRef.doc(user.uid).get()).data();
+        final role = userData?['role'];
+
+        // 🔹 WAJIB CEK INI: Pastikan widget masih aktif setelah proses await selesai
+        if (!mounted) return;
+
+        setState(() => isLoading = false);
+
+        // 🔹 Pindahkan SnackBar ke SINI (SEBELUM context.go)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Berhasil login dengan Google!")),
+        );
+
+        // 🔹 Tentukan navigasi
+        if (role == null) {
+          context.go('/input-role');
+        } else if (role.toString().toUpperCase() == 'PMO') {
+          if (userData?['nickName'] == null || userData?['nickName'] == '') {
+            context.go('/input-name');
+          } else {
+            context.go('/pmo-main-screen');
+          }
+        } else if (role.toString().toUpperCase() == 'PASIEN') {
+          if (userData?['nickName'] == null || userData?['nickName'] == '') {
+            context.go('/input-name');
+          } else if (userData?['ageGroup'] == null) {
+            context.go('/input-usia');
+          } else if (userData?['weight'] == null) {
+            context.go('/input-weight');
+          } else {
+            context.go('/main-screen');
+          }
+        }
+      } else {
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Gagal login dengan Google (Dibatalkan)")),
+        );
+      }
+    } catch (e) {
+      // 🔹 Tangkap semua error Firebase di sini
+      if (!mounted) return;
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Berhasil login dengan Google!")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal login dengan Google")),
+        SnackBar(content: Text("Terjadi kesalahan: ${e.toString()}")),
       );
     }
   }

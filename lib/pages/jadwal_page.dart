@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // tambahkan ini
+import 'package:intl/intl.dart';
+import 'package:tbmate_kmipn/pages/camera_ingestion_page.dart';
 
 class JadwalPage extends StatefulWidget {
   final String nickName;
@@ -23,15 +24,8 @@ class _JadwalPageState extends State<JadwalPage> {
   }
 
   // Ambil 7 hari dalam minggu ini (Minggu–Sabtu)
-  // List<DateTime> getCurrentWeekDays() {
-  //   DateTime now = _weekAnchor;
-  //   int weekday = now.weekday; // Senin = 1, Minggu = 7
-  //   DateTime startOfWeek = now.subtract(Duration(days: weekday % 7));
-  //   return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
-  // }
   List<DateTime> getCurrentWeekDays() {
     final DateTime anchor = _weekAnchor;
-
     int daysFromSunday = anchor.weekday % 7;
     DateTime startOfWeek = DateTime(anchor.year, anchor.month, anchor.day)
         .subtract(Duration(days: daysFromSunday));
@@ -185,491 +179,545 @@ class _JadwalPageState extends State<JadwalPage> {
 
                   const SizedBox(height: 10),
 
-                  // =================== RINGKASAN ===================
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.all(5),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Ringkasan kamu hari ini",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Stack(
-                          children: [
-                            Container(
-                              height: 25,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAE9EE),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            const Align(
-                              alignment: Alignment.centerRight,
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 10),
-                                child: Text(
-                                  "62 hari",
-                                  style: TextStyle(
-                                    color: Colors.black54,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFB2DFDB),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                child: const Column(
-                                  children: [
-                                    Text(
-                                      "0",
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Diminum",
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                margin: const EdgeInsets.only(left: 5),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFF1F1F1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                child: const Column(
-                                  children: [
-                                    Text(
-                                      "0",
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Dilewati",
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // =================== KALENDER ===================
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
-                      children: [
-                        // Header bulan
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              DateFormat('MMM yyyy', 'id_ID')
-                                  .format(_weekAnchor),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.arrow_back_ios,
-                                      size: 16),
-                                  onPressed: () {
-                                    setState(() {
-                                      _weekAnchor = _weekAnchor
-                                          .subtract(const Duration(days: 7));
-                                      selectedDate = _weekAnchor;
-                                    });
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.arrow_forward_ios,
-                                      size: 16),
-                                  onPressed: () {
-                                    setState(() {
-                                      _weekAnchor = _weekAnchor
-                                          .add(const Duration(days: 7));
-                                      selectedDate = _weekAnchor;
-                                    });
-                                  },
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Text("MIN"),
-                            Text("SEN"),
-                            Text("SEL"),
-                            Text("RAB"),
-                            Text("KAM"),
-                            Text("JUM"),
-                            Text("SAB"),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Ganti angka 1–7 menjadi tanggal minggu ini
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: weekDays.map((date) {
-                            bool isSelected = date.day == selectedDate.day &&
-                                date.month == selectedDate.month &&
-                                date.year == selectedDate.year;
-                            bool isToday = date.day == today.day &&
-                                date.month == today.month &&
-                                date.year == today.year;
-
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedDate = date;
-                                });
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.lightBlue
-                                      : isToday
-                                          ? Colors.green.shade100
-                                          : Colors.transparent,
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(8),
-                                child: Text(
-                                  "${date.day}",
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : isToday
-                                            ? Colors.green.shade800
-                                            : Colors.black,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Pengobatan kamu",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-
+                  // =================== WRAPPER STREAM UNTUK RINGKASAN & JADWAL ===================
                   StreamBuilder<QuerySnapshot>(
                     stream: getJadwalObat(selectedDate),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                      // 1. Hitung Ringkasan Dinamis
+                      int obatDiminum = 0;
+                      int obatDilewati = 0;
+                      List<QueryDocumentSnapshot> jadwalList = [];
 
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5FBF5),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text(
-                                "Tidak ada jadwal minum obat di tanggal ini",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Image.asset(
-                                'assets/images/icontasknull.png',
-                                height: 200,
-                              ),
-                            ],
-                          ),
-                        );
+                      if (snapshot.hasData) {
+                        jadwalList = snapshot.data!.docs;
+                        for (var doc in jadwalList) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          if (data['status'] == 'Sudah diminum') {
+                            obatDiminum++;
+                          } else if (data['status'] == 'Terlambat') {
+                            obatDilewati++;
+                          }
+                        }
                       }
-
-                      // Jika ada data jadwal
-                      final jadwalList = snapshot.data!.docs;
 
                       return Column(
-                        children: jadwalList.map((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          final namaObat = data['nama_obat'] ?? '-';
-                          final dosis = data['dosis'] ?? '-';
-                          final jumlahTablet =
-                              data['jumlah_tablet']?.toString() ?? '-';
-                          final waktuMinum = data['waktu_minum'] ?? '-';
-                          final status = data['status'] ?? 'Belum diminum';
-                          final fase = data['fase'] ?? '-';
-                          final tanggal = data['tanggal'] ??
-                              DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-                          DateTime now = DateTime.now();
-                          bool isHariIni =
-                              tanggal == DateFormat('yyyy-MM-dd').format(now);
-
-                          // Parsing waktu obat dari Firebase (format HH:mm)
-                          DateTime waktuObat;
-
-                          try {
-                            DateFormat format = DateFormat("hh:mm a");
-                            DateTime parsedTime = format.parse(waktuMinum);
-
-                            waktuObat = DateTime(
-                              now.year,
-                              now.month,
-                              now.day,
-                              parsedTime.hour,
-                              parsedTime.minute,
-                            );
-                          } catch (e) {
-                            waktuObat = now;
-                          }
-
-                          // Tombol disabled jika belum waktunya minum
-                          bool sudahWaktunyaMinum = now.hour > waktuObat.hour ||
-                              (now.hour == waktuObat.hour &&
-                                  now.minute >= waktuObat.minute);
-                          bool tombolDisabled;
-                          String tombolLabel;
-
-                          if (isHariIni) {
-                            if (status == "Belum diminum") {
-                              tombolDisabled = !sudahWaktunyaMinum;
-                              tombolLabel = "Minum";
-                            } else {
-                              tombolDisabled = false;
-                              tombolLabel = "Detail";
-                            }
-                          } else {
-                            tombolDisabled = true;
-                            tombolLabel = "Detail";
-                          }
-
-                          // Warna status
-                          Color statusColor;
-                          switch (status) {
-                            case "Sudah diminum":
-                              statusColor = Colors.green;
-                              break;
-                            case "Terlambat":
-                              statusColor = Colors.redAccent;
-                              break;
-                            default:
-                              statusColor = Colors.orangeAccent;
-                          }
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(14),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // =================== RINGKASAN ===================
+                          Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey.shade300),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.all(5),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Ringkasan kamu hari ini",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Stack(
+                                  children: [
+                                    Container(
+                                      height: 25,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEAE9EE),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    const Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Padding(
+                                        padding: EdgeInsets.only(right: 10),
+                                        child: Text(
+                                          "62 hari", // Bisa dibuat dinamis nanti jika ada data durasi total
+                                          style: TextStyle(
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        margin: const EdgeInsets.only(right: 5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFB2DFDB),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              "$obatDiminum",
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text(
+                                              "Diminum",
+                                              style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        margin: const EdgeInsets.only(left: 5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F1F1),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              "$obatDilewati",
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text(
+                                              "Dilewati",
+                                              style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // =================== KALENDER ===================
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
                               children: [
-                                // Ikon obat
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      DateFormat('MMM yyyy', 'id_ID')
+                                          .format(_weekAnchor),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.arrow_back_ios,
+                                              size: 16),
+                                          onPressed: () {
+                                            setState(() {
+                                              _weekAnchor =
+                                                  _weekAnchor.subtract(
+                                                      const Duration(days: 7));
+                                              selectedDate = _weekAnchor;
+                                            });
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.arrow_forward_ios,
+                                              size: 16),
+                                          onPressed: () {
+                                            setState(() {
+                                              _weekAnchor = _weekAnchor
+                                                  .add(const Duration(days: 7));
+                                              selectedDate = _weekAnchor;
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                const Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    Text("MIN"),
+                                    Text("SEN"),
+                                    Text("SEL"),
+                                    Text("RAB"),
+                                    Text("KAM"),
+                                    Text("JUM"),
+                                    Text("SAB"),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: weekDays.map((date) {
+                                    bool isSelected =
+                                        date.day == selectedDate.day &&
+                                            date.month == selectedDate.month &&
+                                            date.year == selectedDate.year;
+                                    bool isToday = date.day == today.day &&
+                                        date.month == today.month &&
+                                        date.year == today.year;
 
-                                SvgPicture.asset('assets/icons/obat.svg',
-                                    width: 20, height: 20),
-                                const SizedBox(width: 12),
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          selectedDate = date;
+                                        });
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? Colors.lightBlue
+                                              : isToday
+                                                  ? Colors.green.shade100
+                                                  : Colors.transparent,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(8),
+                                        child: Text(
+                                          "${date.day}",
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : isToday
+                                                    ? Colors.green.shade800
+                                                    : Colors.black,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
 
-                                // Detail jadwal
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Nama obat + status
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              namaObat,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            status,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                              color: statusColor,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        dosis,
-                                        style: const TextStyle(
-                                            color: Colors.black54,
-                                            fontSize: 13),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        fase,
-                                        style: const TextStyle(
-                                            color: Colors.black54,
-                                            fontSize: 13),
-                                      ),
-                                      const SizedBox(height: 8),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "Pengobatan kamu",
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
 
-                                      // Jumlah tablet + waktu + tombol
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              "Pukul $waktuMinum",
-                                              style: const TextStyle(
-                                                color: Colors.lightBlue,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          ElevatedButton(
-                                            onPressed: tombolDisabled
-                                                ? null
-                                                : () async {
-                                                    if (tombolLabel ==
-                                                        "Minum") {
-                                                      await doc.reference
-                                                          .update({
-                                                        'status':
-                                                            'Sudah diminum'
-                                                      });
-                                                    } else {
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (_) =>
-                                                            AlertDialog(
-                                                          title: Text(namaObat),
-                                                          content: Text(
-                                                            "Fase: $fase\nDosis: $dosis\nStatus: $status",
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                      context),
-                                                              child: const Text(
-                                                                  "Tutup"),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    }
-                                                  },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: tombolDisabled
-                                                  ? Colors.grey.shade300
-                                                  : const Color(0xFFB3E5FC),
-                                              foregroundColor: Colors.black,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              minimumSize: const Size(80, 36),
-                                            ),
-                                            child: Text(
-                                              tombolLabel,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.w600),
-                                            ),
-                                          ),
-                                        ],
+                          // =================== LIST OBAT ===================
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting)
+                            const Center(
+                                child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ))
+                          else if (jadwalList.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5FBF5),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    "Tidak ada jadwal minum obat di tanggal ini",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Image.asset(
+                                    'assets/images/icontasknull.png',
+                                    height: 200,
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Column(
+                              children: jadwalList.map((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final namaObat = data['nama_obat'] ?? '-';
+                                final dosis = data['dosis'] ?? '-';
+                                final waktuMinum = data['waktu_minum'] ?? '-';
+                                final status =
+                                    data['status'] ?? 'Belum diminum';
+                                final fase = data['fase'] ?? '-';
+                                final tanggal = data['tanggal'] ??
+                                    DateFormat('yyyy-MM-dd')
+                                        .format(DateTime.now());
+
+                                DateTime now = DateTime.now();
+                                bool isHariIni = tanggal ==
+                                    DateFormat('yyyy-MM-dd').format(now);
+
+                                // 2. Fix Parsing Waktu dari Firebase (menggunakan HH:mm)
+                                DateTime waktuObat;
+                                try {
+                                  DateFormat format = DateFormat("HH:mm");
+                                  DateTime parsedTime =
+                                      format.parse(waktuMinum);
+
+                                  waktuObat = DateTime(
+                                    now.year,
+                                    now.month,
+                                    now.day,
+                                    parsedTime.hour,
+                                    parsedTime.minute,
+                                  );
+                                } catch (e) {
+                                  waktuObat = now; // Fallback jika format salah
+                                }
+
+                                bool sudahWaktunyaMinum =
+                                    now.hour > waktuObat.hour ||
+                                        (now.hour == waktuObat.hour &&
+                                            now.minute >= waktuObat.minute);
+
+                                bool tombolDisabled;
+                                String tombolLabel;
+
+                                // 3. Fix Logika Tombol Detail
+                                if (isHariIni) {
+                                  if (status == "Belum diminum") {
+                                    tombolDisabled = !sudahWaktunyaMinum;
+                                    tombolLabel = "Minum";
+                                  } else {
+                                    tombolDisabled = false;
+                                    tombolLabel = "Detail";
+                                  }
+                                } else {
+                                  tombolDisabled =
+                                      false; // Diubah jadi false supaya bisa diklik
+                                  tombolLabel = "Detail";
+                                }
+
+                                Color statusColor;
+                                switch (status) {
+                                  case "Sudah diminum":
+                                    statusColor = Colors.green;
+                                    break;
+                                  case "Terlambat":
+                                    statusColor = Colors.redAccent;
+                                    break;
+                                  default:
+                                    statusColor = Colors.orangeAccent;
+                                }
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SvgPicture.asset('assets/icons/obat.svg',
+                                          width: 20, height: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    namaObat,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  status,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: statusColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              dosis,
+                                              style: const TextStyle(
+                                                  color: Colors.black54,
+                                                  fontSize: 13),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              fase,
+                                              style: const TextStyle(
+                                                  color: Colors.black54,
+                                                  fontSize: 13),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    "Pukul $waktuMinum",
+                                                    style: const TextStyle(
+                                                      color: Colors.lightBlue,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                ElevatedButton(
+                                                  onPressed: tombolDisabled
+                                                      ? null
+                                                      : () async {
+                                                          if (tombolLabel ==
+                                                              "Minum") {
+                                                            // 🔹 UBAH BAGIAN INI: Arahkan ke Halaman Kamera AI
+                                                            // Kita kirimkan doc.reference agar halaman kamera bisa
+                                                            // update status setelah AI mendeteksi obat diminum.
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder:
+                                                                    (context) =>
+                                                                        CameraIngestionPage(
+                                                                  jadwalDocRef:
+                                                                      doc.reference,
+                                                                  namaObat:
+                                                                      namaObat,
+                                                                ),
+                                                              ),
+                                                            );
+                                                          } else {
+                                                            showDialog(
+                                                              context: context,
+                                                              builder: (_) =>
+                                                                  AlertDialog(
+                                                                title: Text(
+                                                                    namaObat),
+                                                                content: Text(
+                                                                  "Fase: $fase\nDosis: $dosis\nStatus: $status",
+                                                                ),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () =>
+                                                                        Navigator.pop(
+                                                                            context),
+                                                                    child: const Text(
+                                                                        "Tutup"),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        tombolDisabled
+                                                            ? Colors
+                                                                .grey.shade300
+                                                            : (tombolLabel ==
+                                                                    "Detail"
+                                                                ? Colors.green
+                                                                    .shade100
+                                                                : const Color(
+                                                                    0xFFB3E5FC)),
+                                                    foregroundColor:
+                                                        Colors.black,
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                    ),
+                                                    minimumSize:
+                                                        const Size(80, 36),
+                                                  ),
+                                                  child: Text(
+                                                    tombolLabel,
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            )
+                        ],
                       );
                     },
                   )
