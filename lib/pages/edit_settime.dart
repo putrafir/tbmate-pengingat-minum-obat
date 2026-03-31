@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/services/alarm_service.dart';
 
-
 class EditSetTime extends StatefulWidget {
   const EditSetTime({
     super.key,
@@ -147,12 +146,10 @@ class _EditSetTime extends State<EditSetTime> {
       );
 
       if (scheduled.isBefore(now)) {
-        scheduled = scheduled.add(const Duration(days: 1 ));
+        scheduled = scheduled.add(const Duration(days: 1));
       }
 
       // await AlarmService.scheduleAlarm(id: 1, dateTime: scheduled);
-      
-      
 
       final jadwalCollection = FirebaseFirestore.instance
           .collection('users')
@@ -170,7 +167,6 @@ class _EditSetTime extends State<EditSetTime> {
       //   });
       // }
       for (var doc in snapshot.docs) {
-
         batch.update(doc.reference, {
           'waktu_minum': waktu,
           'updatedAt': FieldValue.serverTimestamp(),
@@ -195,7 +191,6 @@ class _EditSetTime extends State<EditSetTime> {
           id: doc.id.hashCode,
           date: alarmDate,
         );
-
       }
 
       await batch.commit();
@@ -221,17 +216,11 @@ class _EditSetTime extends State<EditSetTime> {
   }
 
   // ================== VALIDASI JAM ==================
-  // void _updateHour() {
-  //   int hour = int.tryParse(_hourController.text) ?? 0;
-  //   if (hour > 12) hour = 12;
-  //   if (hour < 0) hour = 0;
-
   //   setState(() {
   //     _hourController.text = hour.toString().padLeft(2, '0');
   //   });
   // }
   void _updateHour() {
-
     int hour = int.tryParse(_hourController.text) ?? 1;
 
     if (hour > 12) hour = 12;
@@ -240,7 +229,6 @@ class _EditSetTime extends State<EditSetTime> {
     setState(() {
       _hourController.text = hour.toString().padLeft(2, '0');
     });
-
   }
 
   void _updateMinute() {
@@ -412,30 +400,33 @@ class _EditSetTime extends State<EditSetTime> {
             decoration: const InputDecoration(
                 counterText: "", border: InputBorder.none),
             // onEditingComplete: onEditingComplete,
+            onChanged: (value) {
+              if (value.length == 2) {
+                int val = int.tryParse(value) ?? 0;
+                if (val > maxValue) {
+                  val = maxValue;
+                  controller.text = val.toString().padLeft(2, '0');
+                  // mengatur kursor
+                  controller.selection = TextSelection.fromPosition(
+                      TextPosition(offset: controller.text.length));
+                }
+              }
+            },
             onEditingComplete: () {
-
+              if (controller.text.isEmpty) {
+                controller.text = (controller == _hourController) ? '01' : '00';
+              }
+              int val = int.tryParse(controller.text) ?? 0;
               if (controller == _hourController) {
-
-                int val = int.tryParse(controller.text) ?? 1;
-
                 if (val > 12) val = 12;
                 if (val < 1) val = 1;
-
-                controller.text = val.toString().padLeft(2, '0');
-              }
-
-              if (controller == _minuteController) {
-
-                int val = int.tryParse(controller.text) ?? 0;
-
+              } else {
                 if (val > 59) val = 59;
                 if (val < 0) val = 0;
-
-                controller.text = val.toString().padLeft(2, '0');
               }
-
+              controller.text = val.toString().padLeft(2, '0');
+              FocusScope.of(context).unfocus();
             },
-
           ),
         ),
         const SizedBox(height: 6),
