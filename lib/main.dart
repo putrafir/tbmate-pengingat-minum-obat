@@ -9,6 +9,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:tbmate_kmipn/services/notification_controller.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -17,10 +18,13 @@ void main() async {
   tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
   await AlarmService.init();
-  
+
   await AwesomeNotifications().requestPermissionToSendNotifications();
   AwesomeNotifications().setListeners(
     onActionReceivedMethod: NotificationController.onActionReceived,
+    onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
+    onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
+    onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod,
   );
   await initializeDateFormatting('id_ID', null);
   runApp(const TBMateApp());

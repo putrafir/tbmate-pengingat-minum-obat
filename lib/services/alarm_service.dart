@@ -1,9 +1,12 @@
+import 'dart:ui';
+
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:flutter/foundation.dart'; // Untuk debugPrint
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart'; // Untuk debugPrint
 
 class AlarmService {
   // Gunakan channelKey baru untuk mereset cache Android
-  static const String _channelKey = 'tbmate_alarm_v2';
+  static const String _channelKey = 'tbmate_alarm_v4';
 
   // ==========================================
   // 1. FUNGSI UTAMA (CORE FEATURES)
@@ -20,6 +23,7 @@ class AlarmService {
           importance: NotificationImportance.Max,
           defaultRingtoneType: DefaultRingtoneType.Alarm,
           playSound: true,
+          soundSource: 'resource://raw/amba',
           enableVibration: true,
           criticalAlerts: true,
         )
@@ -35,6 +39,9 @@ class AlarmService {
     if (!isAllowed) {
       await AwesomeNotifications().requestPermissionToSendNotifications();
     }
+    if (!isAllowed) {
+      await AwesomeNotifications().showAlarmPage();
+    }
 
     // Khusus Android 12+ minta izin Exact Alarm secara eksplisit
     await AwesomeNotifications().checkPermissionList(
@@ -42,6 +49,7 @@ class AlarmService {
       permissions: [
         NotificationPermission.PreciseAlarms,
         NotificationPermission.FullScreenIntent,
+        NotificationPermission.CriticalAlert,
       ],
     );
   }
@@ -62,27 +70,31 @@ class AlarmService {
       content: NotificationContent(
         id: id,
         channelKey: _channelKey,
-        title: 'Waktu Minum Obat',
-        body: 'Saatnya minum obat TB',
+        title: '💊 WAKTUNYA MINUM OBAT',
+        body: 'Halo! Jangan lupa minum obat TB kamu sekarang ya, agar cepat pulih. 😊',
+        notificationLayout: NotificationLayout.BigText,
+        color: const Color(0xFF2E7D32),
+        backgroundColor: Colors.white,
         category: NotificationCategory.Alarm,
-        criticalAlert: true,
         wakeUpScreen: true,
         fullScreenIntent: true,
+        criticalAlert: true,
         locked: true,
-        icon: 'resource://drawable/tb_icon',
+        icon: 'resource://drawable/happy',
         autoDismissible: false,
         customSound: 'resource://raw/amba',
       ),
       actionButtons: [
         NotificationActionButton(
           key: 'MINUM',
-          label: 'Sudah Minum',
+          label: ' Minum 💊',
           actionType: ActionType.Default,
+          color: const Color(0xFF2E7D32),
         ),
         NotificationActionButton(
           key: 'SKIP',
           label: 'Skip',
-          actionType: ActionType.SilentAction,
+          actionType: ActionType.Default,
         )
       ],
       schedule: NotificationCalendar(
@@ -100,30 +112,45 @@ class AlarmService {
     );
   }
 
-  static Future<void> repeat5Minutes(int id) async {
+  static Future<void> repeatSnooze(int id, Duration duration) async {
     String localTimeZone =
         await AwesomeNotifications().getLocalTimeZoneIdentifier();
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
-        id: id,
+        id: id + 1,
         channelKey: _channelKey,
-        title: 'Pengingat Minum Obat',
+        title: '⏰Pengingat Minum Obat',
         body: 'Obat belum diminum',
         category: NotificationCategory.Alarm,
+        notificationLayout: NotificationLayout.BigText,
         wakeUpScreen: true,
         fullScreenIntent: true,
         locked: true,
         autoDismissible: false,
-        customSound: 'resource://raw/alarm_tbmate',
+        criticalAlert: true,
+        icon: 'resource://drawable/happy',
+        customSound: 'resource://raw/amba',
       ),
       schedule: NotificationInterval(
-        interval: const Duration(minutes: 5),
+        interval: duration,
         preciseAlarm: true,
         allowWhileIdle: true,
-        repeats: true,
+        repeats: false,
         timeZone: localTimeZone,
       ),
+      actionButtons: [
+        NotificationActionButton(
+          key: 'MINUM',
+          label: 'SUDAH MINUM 💊',
+          actionType: ActionType.Default,
+        ),
+        NotificationActionButton(
+          key: 'SKIP',
+          label: 'TUNDA LAGI',
+          actionType: ActionType.Default,
+        )
+      ],
     );
   }
 

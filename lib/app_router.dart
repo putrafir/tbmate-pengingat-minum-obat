@@ -6,7 +6,6 @@ import 'package:tbmate_kmipn/pages/beratbadan.dart';
 import 'package:tbmate_kmipn/pages/input_role.dart';
 import 'package:tbmate_kmipn/pages/inputname.dart';
 import 'package:tbmate_kmipn/pages/inputusia.dart';
-import 'package:tbmate_kmipn/pages/jadwal_page.dart';
 import 'package:tbmate_kmipn/pages/main_screen.dart';
 import 'package:tbmate_kmipn/pages/screen1.dart';
 import 'package:tbmate_kmipn/pages/settime.dart';
@@ -16,8 +15,10 @@ import 'package:tbmate_kmipn/auth/auth_page.dart';
 import 'package:tbmate_kmipn/pages/welcome_page.dart';
 import 'package:tbmate_kmipn/pmo/pmo_main_screen.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
+import 'package:tbmate_kmipn/main.dart';
 
-final GoRouter appRouter = GoRouter(initialLocation: '/', routes: [
+// coba
+final GoRouter appRouter = GoRouter(navigatorKey:navigatorKey, initialLocation: '/', routes: [
   GoRoute(
     path: '/',
     name: 'splash',
@@ -109,10 +110,11 @@ final GoRouter appRouter = GoRouter(initialLocation: '/', routes: [
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>?;
       return AkunPage(
-        fullName: extra?['fullName']?? '',
-        uniqueId: extra?['uniqueId']?? '',
-        role: extra?['role']?? '',
+        fullName: extra?['fullName'] ?? '',
+        uniqueId: extra?['uniqueId'] ?? '',
+        role: extra?['role'] ?? '',
       );
     },
-  )
+  ),
+
 ]);
