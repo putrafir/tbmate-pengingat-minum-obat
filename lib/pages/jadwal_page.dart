@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:tbmate_kmipn/pages/camera_ingestion_page.dart';
+import 'package:go_router/go_router.dart';
 
 class JadwalPage extends StatefulWidget {
   final String nickName;
@@ -64,7 +65,7 @@ class _JadwalPageState extends State<JadwalPage> {
             Container(
               width: MediaQuery.of(context).size.width,
               decoration: const BoxDecoration(
-                color: Color(0xFF2E7D32),
+                color: Color.fromRGBO(46, 125, 50, 1),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -655,25 +656,16 @@ class _JadwalPageState extends State<JadwalPage> {
                                                               ),
                                                             );
                                                           } else {
-                                                            showDialog(
-                                                              context: context,
-                                                              builder: (_) =>
-                                                                  AlertDialog(
-                                                                title: Text(
-                                                                    namaObat),
-                                                                content: Text(
-                                                                  "Fase: $fase\nDosis: $dosis\nStatus: $status",
-                                                                ),
-                                                                actions: [
-                                                                  TextButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.pop(
-                                                                            context),
-                                                                    child: const Text(
-                                                                        "Tutup"),
-                                                                  ),
-                                                                ],
-                                                              ),
+                                                            context.pushNamed(
+                                                              'detail-riwayat',
+                                                              extra: {
+                                                                'namaObat': namaObat,
+                                                                'dosis': dosis,
+                                                                'fase': fase,
+                                                                'status': status,
+                                                                'waktu': waktuMinum,
+                                                                'tanggal': tanggal,
+                                                              },
                                                             );
                                                           }
                                                         },

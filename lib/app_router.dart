@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/auth/signup_page.dart';
 import 'package:tbmate_kmipn/auth/login_page.dart';
 import 'package:tbmate_kmipn/pages/beratbadan.dart';
+import 'package:tbmate_kmipn/pages/detail_riwayat.dart';
 import 'package:tbmate_kmipn/pages/input_role.dart';
 import 'package:tbmate_kmipn/pages/inputname.dart';
 import 'package:tbmate_kmipn/pages/inputusia.dart';
@@ -116,5 +117,22 @@ final GoRouter appRouter = GoRouter(navigatorKey:navigatorKey, initialLocation: 
       );
     },
   ),
+
+  GoRoute(
+  path: '/detail-riwayat',
+  name: 'detail-riwayat',
+  builder: (context, state) {
+    final data = state.extra as Map<String, dynamic>;
+
+    return DetailRiwayat(
+      namaObat: data['namaObat'],
+      dosis: data['dosis'],
+      fase: data['fase'],
+      status: data['status'],
+      waktu: data['waktu'],
+      tanggal: data['tanggal'],
+    );
+  },
+),
 
 ]);
