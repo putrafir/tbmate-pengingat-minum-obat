@@ -1,3 +1,4 @@
+// import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +13,54 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> {
+class _AuthPageState extends State<AuthPage> with WidgetsBindingObserver {
   final authService = AuthService();
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Daftarkan satpam
+    WidgetsBinding.instance.addObserver(this);
+
+    // 2. Suruh UI gambar halamannya dulu, baru panggil si pembuat pop-up
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mintaIzinNotifikasi();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Wajib copot biar nggak bocor memori
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Kalau aplikasi baru aja balik ke layar (habis milih akun Google atau dari Settings)
+    if (state == AppLifecycleState.resumed) {
+      // Kasih napas 300 milidetik buat layar HP siap, lalu refresh!
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  Future<void> _mintaIzinNotifikasi() async {
+    // Biarkan UI AuthPage selesai ke-render selama 1 detik
+    await Future.delayed(const Duration(seconds: 1));
+
+    // // Baru minta izin!
+    // AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    //   if (!isAllowed) {
+    //     AwesomeNotifications().requestPermissionToSendNotifications();
+    //   }
+    // });
+  }
+
   Future<void> _loginWithGoogle() async {
     setState(() => isLoading = true);
 

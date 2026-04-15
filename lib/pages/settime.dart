@@ -203,11 +203,11 @@ class _SetWaktuState extends State<SetWaktu> {
           'berat_badan': beratBadan,
           'createdAt': FieldValue.serverTimestamp(),
         });
-      
-          await AlarmService.scheduleAlarm(
-            id: docRef.id.hashCode,
-            date: tgl,
-          );
+
+        // await AlarmService.scheduleAlarm(
+        //   id: docRef.id.hashCode,
+        //   date: tgl,
+        // );
       }
 
       // Fase Lanjutan (3x seminggu, 16 minggu)
@@ -231,11 +231,8 @@ class _SetWaktuState extends State<SetWaktu> {
       //   }
       // }
       for (int week = 0; week < 16; week++) {
-
         for (int day = 0; day < 7; day++) {
-
           if (day == 1 || day == 3 || day == 5) {
-
             final tgl = now.add(Duration(days: 56 + (week * 7) + day));
 
             final docRef = await jadwalCollection.add({
@@ -251,18 +248,13 @@ class _SetWaktuState extends State<SetWaktu> {
               'createdAt': FieldValue.serverTimestamp(),
             });
 
-            await AlarmService.scheduleAlarm(
-              id: docRef.id.hashCode,
-              date: tgl,
-            );
-
+            // await AlarmService.scheduleAlarm(
+            //   id: docRef.id.hashCode,
+            //   date: tgl,
+            // );
           }
-
         }
-
       }
-
-
 
       if (context.mounted) {
         Navigator.pop(context);

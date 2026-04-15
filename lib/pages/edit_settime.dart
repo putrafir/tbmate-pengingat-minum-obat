@@ -187,10 +187,10 @@ class _EditSetTime extends State<EditSetTime> {
           alarmDate = alarmDate.add(const Duration(days: 1));
         }
 
-        await AlarmService.scheduleAlarm(
-          id: doc.id.hashCode,
-          date: alarmDate,
-        );
+        // await AlarmService.scheduleAlarm(
+        //   id: doc.id.hashCode,
+        //   date: alarmDate,
+        // );
       }
 
       await batch.commit();

@@ -3,11 +3,11 @@ import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
-// import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart'; // 🔹 Komen sementara
-import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'dart:math' as math;
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'dart:async';
 
-enum VdotState { searchingPill, pillVerified, drinking, success }
+// 🔹 Alur State Sesuai Kesepakatan Kita
+enum VdotState { searchingFace, showingPill, drinking, checkingMouth, success }
 
 class CameraIngestionPage extends StatefulWidget {
   final DocumentReference jadwalDocRef;
@@ -24,32 +24,31 @@ class CameraIngestionPage extends StatefulWidget {
 }
 
 class _CameraIngestionPageState extends State<CameraIngestionPage> {
-  CustomPaint? _customPaint; // 🔹 Tambahan untuk menyimpan visual tracking
   CameraController? _cameraController;
+  CustomPaint? _customPaint;
   bool _isProcessing = false;
-  VdotState _currentState = VdotState.searchingPill;
-  String _instruction = "Tunjukkan Obat TB ke Kamera";
 
-  // late ImageLabeler _pillLabeler; // 🔹 Komen sementara
-  late PoseDetector _poseDetector;
+  VdotState _currentState = VdotState.searchingFace;
+  String _instruction = "Posisikan wajah Anda di kamera";
+  bool _isFaceDetected = false;
+  int _countdown = 3;
+  Timer? _timer;
+
+  // 🔹 "Otak" AI Baru: Face Detector dengan fitur Contours (untuk baca bibir)
+  late FaceDetector _faceDetector;
 
   @override
   void initState() {
     super.initState();
-    _initDetectors();
+    // Inisialisasi Face Detector (Wajib nyalakan Contours untuk ngecek mulut terbuka)
+    _faceDetector = FaceDetector(
+      options: FaceDetectorOptions(
+        enableContours: true,
+        enableTracking: true, // Biar AI tahu itu wajah yang sama
+        performanceMode: FaceDetectorMode.fast,
+      ),
+    );
     _initCamera();
-  }
-
-  void _initDetectors() {
-    // 🔹 Komen sementara agar tidak error mencari file tflite
-    /*
-    _pillLabeler = ImageLabeler(options: LocalLabelerOptions(
-      modelPath: 'assets/obat_model.tflite',
-      confidenceThreshold: 0.75,
-    ));
-    */
-
-    _poseDetector = PoseDetector(options: PoseDetectorOptions(mode: PoseDetectionMode.stream));
   }
 
   Future<void> _initCamera() async {
@@ -60,15 +59,16 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     );
 
     _cameraController = CameraController(
-      frontCamera, 
-      ResolutionPreset.medium, 
+      frontCamera,
+      ResolutionPreset.medium,
       enableAudio: false,
-      // 🔹 TAMBAHAN PENTING: Paksa kamera ke format yang bisa dibaca ML Kit
-      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888, 
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
-    
+
     await _cameraController!.initialize();
-    
+
     _cameraController!.startImageStream((image) {
       if (!_isProcessing) _processLogic(image);
     });
@@ -85,97 +85,170 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     }
 
     try {
-      if (_currentState == VdotState.searchingPill) {
-        // --- TAHAP 1: CARI OBAT ---
-        // 🔹 Karena model belum ada, kita matikan logika AI-nya.
-        // Transisi ke tahap 2 sekarang dikendalikan oleh Tombol "Lewati" di layar.
-      } 
-      else if (_currentState == VdotState.pillVerified || _currentState == VdotState.drinking) {
-        // --- TAHAP 2: CEK GERAKAN MINUM ---
-        final poses = await _poseDetector.processImage(inputImage);
-        
-        debugPrint("🔍 Jumlah pose terdeteksi: ${poses.length}");
+      final faces = await _faceDetector.processImage(inputImage);
 
-        if (poses.isNotEmpty) {
-          // 🔹 MENGGAMBAR TRACKING KE LAYAR
-          final painter = PosePainter(
-            poses,
-            inputImage.metadata!.size,
-            inputImage.metadata!.rotation,
-            _cameraController!.description.lensDirection,
-          );
-          _customPaint = CustomPaint(painter: painter);
+      // 1. Cek Apakah Wajah Ada di Kamera
+      bool faceFound = faces.isNotEmpty;
+      if (mounted && _isFaceDetected != faceFound) {
+        setState(() {
+          _isFaceDetected = faceFound;
+        });
+      }
 
-          if (_isHandAtMouth(poses.first)) {
+      if (faceFound) {
+        final face = faces.first; // Asumsi hanya ada 1 wajah (pasien)
+
+        // 🔹 GAMBAR KOTAK WAJAH & BIBIR (Visual UI Keren)
+        final painter = FacePainter(
+          face,
+          inputImage.metadata!.size,
+          inputImage.metadata!.rotation,
+          _cameraController!.description.lensDirection,
+        );
+        _customPaint = CustomPaint(painter: painter);
+
+        // 🔹 LOGIKA STATE MACHINE
+        if (_currentState == VdotState.checkingMouth) {
+          if (_isMouthOpen(face)) {
             setState(() {
               _currentState = VdotState.success;
-              _instruction = "Berhasil! Data sedang disimpan...";
+              _instruction = "Verifikasi Berhasil! Menyimpan data...";
             });
             _saveToDatabase();
-          } else {
-            // Update state agar CustomPaint tergambar meskipun belum sukses
-            if (mounted) setState(() {}); 
           }
-        } else {
-          // Kalau tidak ada pose terdeteksi, hapus tracking
-          _customPaint = null;
-          if (mounted) setState(() {});
+        }
+      } else {
+        // Hapus kotak kalau wajah hilang
+        _customPaint = null;
+
+        // Peringatan PENTING: Wajah Hilang!
+        if (_currentState != VdotState.searchingFace &&
+            _currentState != VdotState.success) {
+          if (mounted) {
+            // Opsional: Kamu bisa nambahin logika pause timer di sini
+            debugPrint("PERINGATAN: Wajah Hilang!");
+          }
         }
       }
+
+      if (mounted) setState(() {});
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error Face Detection: $e");
     } finally {
       _isProcessing = false;
     }
   }
 
-  bool _isHandAtMouth(Pose pose) {
-    final mouth = pose.landmarks[PoseLandmarkType.leftMouth];
-    final hand = pose.landmarks[PoseLandmarkType.rightWrist]; 
-    
-    if (mouth != null && hand != null) {
-      final distance = math.sqrt(math.pow(mouth.x - hand.x, 2) + math.pow(mouth.y - hand.y, 2));
-      return distance < 100; // Ambang batas jarak (bisa kamu ubah jika perlu)
+  // 🔹 INI KUNCI UTAMA (Magic-nya AI untuk ngecek mulut terbuka)
+  bool _isMouthOpen(Face face) {
+    // Ambil titik bibir atas bagian bawah, dan bibir bawah bagian atas (celah mulut)
+    final upperLipBottom =
+        face.contours[FaceContourType.upperLipBottom]?.points;
+    final lowerLipTop = face.contours[FaceContourType.lowerLipTop]?.points;
+
+    if (upperLipBottom != null &&
+        lowerLipTop != null &&
+        upperLipBottom.isNotEmpty &&
+        lowerLipTop.isNotEmpty) {
+      // Ambil titik tengah bibir (index ke-4 atau ke-5 biasanya pas di tengah)
+      int midIndexUpper = upperLipBottom.length ~/ 2;
+      int midIndexLower = lowerLipTop.length ~/ 2;
+
+      double yUpper = upperLipBottom[midIndexUpper].y.toDouble();
+      double yLower = lowerLipTop[midIndexLower].y.toDouble();
+
+      // Hitung jarak vertikal celah bibir
+      double distance = (yLower - yUpper).abs();
+
+      // Jika jaraknya lebih dari 15 pixel (bisa disesuaikan), berarti mulut terbuka (bilang 'AAA')
+      return distance > 15.0;
     }
     return false;
   }
 
-  void _saveToDatabase() {
-    _cameraController?.stopImageStream();
-    // TODO: Update Firestore document status ke "Selesai/Diminum"
-    Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+  // --- LOGIKA TOMBOL & TRANSI ---
+
+  void _startShowingPill() {
+    setState(() {
+      _currentState = VdotState.showingPill;
+      _instruction = "Tunjukkan obat ke kamera ($_countdown)";
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _countdown--;
+        if (_countdown > 0) {
+          _instruction = "Tunjukkan obat ke kamera ($_countdown)";
+        } else {
+          timer.cancel();
+          _startDrinking();
+        }
+      });
+    });
   }
 
+  void _startDrinking() {
+    setState(() {
+      _currentState = VdotState.drinking;
+      _instruction = "Silakan minum obat Anda sekarang";
+    });
+  }
+
+  void _startCheckingMouth() {
+    setState(() {
+      _currentState = VdotState.checkingMouth;
+      _instruction = "Buka mulut Anda (Bilang 'AAA')";
+    });
+  }
+
+  Future<void> _saveToDatabase() async {
+    _cameraController?.stopImageStream();
+
+    // 🔹 Jepret Foto Bukti (Snapshot AI)
+    XFile? picture;
+    try {
+      picture = await _cameraController?.takePicture();
+      debugPrint("📸 Foto bukti tersimpan di: ${picture?.path}");
+    } catch (e) {
+      debugPrint("Gagal ambil foto: $e");
+    }
+
+    // TODO: Upload `picture` ke Firebase Storage, lalu update Firestore jadwalDocRef
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) Navigator.pop(context);
+    });
+  }
+
+  // (Fungsi _convertToInputImage SAMA PERSIS seperti kodemu sebelumnya)
   InputImage? _convertToInputImage(CameraImage image) {
     if (_cameraController == null) return null;
-
     final WriteBuffer allBytes = WriteBuffer();
     for (final Plane plane in image.planes) {
       allBytes.putUint8List(plane.bytes);
     }
     final bytes = allBytes.done().buffer.asUint8List();
-
-    final Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
+    final Size imageSize =
+        Size(image.width.toDouble(), image.height.toDouble());
     final imageRotation = InputImageRotationValue.fromRawValue(
-        _cameraController!.description.sensorOrientation) ?? InputImageRotation.rotation0deg;
-    
-    // 🔹 TAMBAHAN PENTING: Kunci format sesuai platform agar ML Kit tidak bingung
-    final inputImageFormat = Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888;
-
+            _cameraController!.description.sensorOrientation) ??
+        InputImageRotation.rotation0deg;
+    final inputImageFormat =
+        Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888;
     final inputImageData = InputImageMetadata(
-      size: imageSize, 
-      rotation: imageRotation, 
-      format: inputImageFormat, 
+      size: imageSize,
+      rotation: imageRotation,
+      format: inputImageFormat,
       bytesPerRow: image.planes[0].bytesPerRow,
     );
-
     return InputImage.fromBytes(bytes: bytes, metadata: inputImageData);
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _cameraController?.dispose();
-    _poseDetector.close();
+    _faceDetector.close();
     super.dispose();
   }
 
@@ -184,10 +257,9 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const Scaffold(
           backgroundColor: Colors.black,
-          body: Center(child: CircularProgressIndicator(color: Colors.white)));
+          body: Center(child: CircularProgressIndicator()));
     }
 
-    // 🔹 Ambil resolusi asli kamera. Dibalik (height jadi width) karena posisi Portrait
     final previewSize = _cameraController!.value.previewSize!;
     final cameraWidth = previewSize.height;
     final cameraHeight = previewSize.width;
@@ -197,10 +269,10 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 🔹 TAMPILAN KAMERA & TRACKING ANTI-LONJONG
+          // 1. KAMERA & TRACKING Wajah
           Positioned.fill(
             child: FittedBox(
-              fit: BoxFit.cover, // Membuat full-screen tanpa melar
+              fit: BoxFit.cover,
               child: SizedBox(
                 width: cameraWidth,
                 height: cameraHeight,
@@ -215,57 +287,38 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
             ),
           ),
 
-          // 🔹 HEADER
-          Positioned(
-            top: 50,
-            left: 16,
-            right: 16,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Icon(Icons.flash_off, color: Colors.white),
-                Text("Verifikasi ${widget.namaObat}",
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold)),
-                IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context)),
-              ],
-            ),
-          ),
-
-          // 🔹 TOMBOL BYPASS (Hanya muncul saat tahap mencari obat)
-          if (_currentState == VdotState.searchingPill)
+          // 2. HEADER Teks Merah kalau Wajah Hilang
+          if (!_isFaceDetected && _currentState != VdotState.success)
             Positioned(
-              bottom: 120,
+              top: 100,
               left: 20,
               right: 20,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.all(15)),
-                onPressed: () {
-                  setState(() {
-                    // 🔹 Memicu State berubah, TRACKING AKAN MULAI MUNCUL
-                    _currentState = VdotState.pillVerified;
-                    _instruction = "SIMULASI: Obat Terdeteksi! Silakan Diminum";
-                  });
-                },
-                child: const Text("Lewati Deteksi Obat (Test Mode)",
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                child: const Text("⚠️ WAJAH TIDAK TERDETEKSI!",
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
 
-          // 🔹 KOTAK INSTRUKSI
+          // 3. TOMBOL KENDALI ALUR
+          Positioned(
+            bottom: 120,
+            left: 20,
+            right: 20,
+            child: _buildActionButtons(),
+          ),
+
+          // 4. KOTAK INSTRUKSI
           Positioned(
             bottom: 40,
             left: 20,
             right: 20,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
                   color: _currentState == VdotState.success
                       ? Colors.green.shade800
@@ -273,11 +326,11 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
                   borderRadius: BorderRadius.circular(12)),
               child: Text(
                 _instruction,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
               ),
             ),
           )
@@ -286,154 +339,98 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     );
   }
 
-
-
+  // 🔹 Ganti Tombol sesuai State
+  Widget _buildActionButtons() {
+    if (_currentState == VdotState.searchingFace) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+            backgroundColor: _isFaceDetected ? Colors.blue : Colors.grey,
+            padding: const EdgeInsets.all(15)),
+        onPressed: _isFaceDetected
+            ? _startShowingPill
+            : null, // Cuma bisa diklik kalau wajah kelihatan
+        child: const Text("Mulai Minum Obat",
+            style: TextStyle(color: Colors.white, fontSize: 16)),
+      );
+    } else if (_currentState == VdotState.drinking) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange, padding: const EdgeInsets.all(15)),
+        onPressed: _startCheckingMouth,
+        child: const Text("Saya Sudah Menelan Obat",
+            style: TextStyle(color: Colors.white, fontSize: 16)),
+      );
+    }
+    return const SizedBox.shrink(); // Sembunyikan tombol di state lain
+  }
 }
 
-class PosePainter extends CustomPainter {
-  final List<Pose> poses;
+// 🔹 PAINTER UNTUK MENGGAMBAR KOTAK WAJAH & TITIK BIBIR
+class FacePainter extends CustomPainter {
+  final Face face;
   final Size imageSize;
   final InputImageRotation rotation;
   final CameraLensDirection cameraLensDirection;
 
-  PosePainter(this.poses, this.imageSize, this.rotation, this.cameraLensDirection);
+  FacePainter(
+      this.face, this.imageSize, this.rotation, this.cameraLensDirection);
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 🔹 Kuas untuk Kotak Wajah
-    final faceBoxPaint = Paint()
+    final paintBox = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.yellowAccent
-      ..strokeWidth = 3.0;
-
-    // 🔹 Kuas untuk Kerangka Lengan & Tangan
-    final skeletonPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..color = Colors.cyanAccent
-      ..strokeWidth = 4.0
-      ..strokeJoin = StrokeJoin.round;
-
-    // 🔹 Kuas untuk Titik Sendi (Opsional, biar lebih keren)
-    final jointPaint = Paint()
+      ..strokeWidth = 3.0
+      ..color = Colors.greenAccent;
+    final paintLip = Paint()
       ..style = PaintingStyle.fill
       ..color = Colors.redAccent;
 
-    for (final pose in poses) {
-      _drawFaceBox(canvas, size, pose, faceBoxPaint);
-      _drawArmSkeleton(canvas, size, pose, skeletonPaint, jointPaint);
+    // 1. Gambar Kotak Wajah
+    final boundingBox = face.boundingBox;
+    final left = _translateX(
+        boundingBox.left, size, imageSize, rotation, cameraLensDirection);
+    final top = _translateY(boundingBox.top, size, imageSize, rotation);
+    final right = _translateX(
+        boundingBox.right, size, imageSize, rotation, cameraLensDirection);
+    final bottom = _translateY(boundingBox.bottom, size, imageSize, rotation);
+
+    canvas.drawRRect(
+        RRect.fromLTRBR(left, top, right, bottom, const Radius.circular(12)),
+        paintBox);
+
+    // 2. Gambar Titik Bibir (Keren buat efek UI)
+    final upperLipBottom =
+        face.contours[FaceContourType.upperLipBottom]?.points ?? [];
+    final lowerLipTop =
+        face.contours[FaceContourType.lowerLipTop]?.points ?? [];
+
+    for (var point in [...upperLipBottom, ...lowerLipTop]) {
+      final px = _translateX(
+          point.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
+      final py = _translateY(point.y.toDouble(), size, imageSize, rotation);
+      canvas.drawCircle(Offset(px, py), 3, paintLip);
     }
-  }
-
-  // --- FUNGSI MENGGAMBAR KOTAK WAJAH ---
-  void _drawFaceBox(Canvas canvas, Size size, Pose pose, Paint paint) {
-    double minX = double.infinity, minY = double.infinity;
-    double maxX = double.negativeInfinity, maxY = double.negativeInfinity;
-    bool faceFound = false;
-
-    // Titik 0 sampai 10 di ML Kit adalah area wajah (Hidung, Mata, Telinga, Mulut)
-    final faceLandmarkTypes = [
-      PoseLandmarkType.nose, PoseLandmarkType.leftEye, PoseLandmarkType.rightEye,
-      PoseLandmarkType.leftEar, PoseLandmarkType.rightEar,
-      PoseLandmarkType.leftMouth, PoseLandmarkType.rightMouth,
-    ];
-
-    for (var type in faceLandmarkTypes) {
-      final landmark = pose.landmarks[type];
-      if (landmark != null) {
-        faceFound = true;
-        final double x = _translateX(landmark.x, size, imageSize, rotation, cameraLensDirection);
-        final double y = _translateY(landmark.y, size, imageSize, rotation);
-
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-
-    if (faceFound) {
-      // Tambahkan padding agar kotak lebih besar dari wajah asli
-      const double padding = 25.0;
-      final Rect faceRect = Rect.fromLTRB(
-        minX - padding, minY - (padding * 1.5), // Atas dibuat lebih tinggi untuk jidat
-        maxX + padding, maxY + padding
-      );
-      
-      // Gambar kotak dengan sudut melengkung (rounded rectangle)
-      canvas.drawRRect(RRect.fromRectAndRadius(faceRect, const Radius.circular(12)), paint);
-    }
-  }
-
-  // --- FUNGSI MENGGAMBAR KERANGKA TANGAN ---
-  void _drawArmSkeleton(Canvas canvas, Size size, Pose pose, Paint linePaint, Paint jointPaint) {
-    void drawBone(PoseLandmarkType type1, PoseLandmarkType type2) {
-      final joint1 = pose.landmarks[type1];
-      final joint2 = pose.landmarks[type2];
-      if (joint1 != null && joint2 != null && joint1.likelihood > 0.5 && joint2.likelihood > 0.5) {
-        final x1 = _translateX(joint1.x, size, imageSize, rotation, cameraLensDirection);
-        final y1 = _translateY(joint1.y, size, imageSize, rotation);
-        final x2 = _translateX(joint2.x, size, imageSize, rotation, cameraLensDirection);
-        final y2 = _translateY(joint2.y, size, imageSize, rotation);
-        
-        canvas.drawLine(Offset(x1, y1), Offset(x2, y2), linePaint);
-        canvas.drawCircle(Offset(x1, y1), 5, jointPaint); // Gambar sendi 1
-        canvas.drawCircle(Offset(x2, y2), 5, jointPaint); // Gambar sendi 2
-      }
-    }
-
-    // Lengan Kiri (Bahu -> Siku -> Pergelangan)
-    drawBone(PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow);
-    drawBone(PoseLandmarkType.leftElbow, PoseLandmarkType.leftWrist);
-    // Jari Tangan Kiri (Pergelangan -> Jempol, Telunjuk, Kelingking)
-    drawBone(PoseLandmarkType.leftWrist, PoseLandmarkType.leftThumb);
-    drawBone(PoseLandmarkType.leftWrist, PoseLandmarkType.leftIndex);
-    drawBone(PoseLandmarkType.leftWrist, PoseLandmarkType.leftPinky);
-
-    // Lengan Kanan (Bahu -> Siku -> Pergelangan)
-    drawBone(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightElbow);
-    drawBone(PoseLandmarkType.rightElbow, PoseLandmarkType.rightWrist);
-    // Jari Tangan Kanan (Pergelangan -> Jempol, Telunjuk, Kelingking)
-    drawBone(PoseLandmarkType.rightWrist, PoseLandmarkType.rightThumb);
-    drawBone(PoseLandmarkType.rightWrist, PoseLandmarkType.rightIndex);
-    drawBone(PoseLandmarkType.rightWrist, PoseLandmarkType.rightPinky);
   }
 
   @override
-  bool shouldRepaint(covariant PosePainter oldDelegate) {
-    return oldDelegate.imageSize != imageSize || oldDelegate.poses != poses;
-  }
+  bool shouldRepaint(covariant FacePainter oldDelegate) => true;
 
-  double _translateX(double x, Size canvasSize, Size imageSize, InputImageRotation rotation, CameraLensDirection cameraLensDirection) {
-    double scaleX;
-    
-    // 1. Sesuaikan skala karena frame kamera Android aslinya Landscape (tertukar)
-    if (Platform.isAndroid && (rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg)) {
-      scaleX = canvasSize.width / imageSize.height;
-    } else {
-      scaleX = canvasSize.width / imageSize.width;
-    }
-
+  double _translateX(double x, Size canvasSize, Size imageSize,
+      InputImageRotation rotation, CameraLensDirection cameraLensDirection) {
+    double scaleX = Platform.isAndroid
+        ? canvasSize.width / imageSize.height
+        : canvasSize.width / imageSize.width;
     double scaledX = x * scaleX;
-
-    // 2. FIX MIRRORING: Kalau kamera depan, balikkan sumbu X (kiri jadi kanan)
-    if (cameraLensDirection == CameraLensDirection.front) {
-      return canvasSize.width - scaledX; 
-    }
-    
-    return scaledX;
+    return cameraLensDirection == CameraLensDirection.front
+        ? canvasSize.width - scaledX
+        : scaledX;
   }
 
-  // Helper untuk menyesuaikan skala Y (Diperbaiki untuk Rotasi)
-  double _translateY(double y, Size canvasSize, Size imageSize, InputImageRotation rotation) {
-    double scaleY;
-    
-    // 1. Sesuaikan skala karena frame kamera Android aslinya Landscape (tertukar)
-    if (Platform.isAndroid && (rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg)) {
-      scaleY = canvasSize.height / imageSize.width;
-    } else {
-      scaleY = canvasSize.height / imageSize.height;
-    }
-
+  double _translateY(
+      double y, Size canvasSize, Size imageSize, InputImageRotation rotation) {
+    double scaleY = Platform.isAndroid
+        ? canvasSize.height / imageSize.width
+        : canvasSize.height / imageSize.height;
     return y * scaleY;
   }
 }

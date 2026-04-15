@@ -34,19 +34,36 @@ class _JadwalPageState extends State<JadwalPage> {
     return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
   }
 
-  Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Stream.empty();
-    }
+  // Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) {
+  //     return const Stream.empty();
+  //   }
 
+  //   String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+  //   return FirebaseFirestore.instance
+  //       .collection('users')
+  //       .doc(user.uid)
+  //       .collection('jadwal_obat')
+  //       .where('tanggal', isEqualTo: formattedDate)
+  //       .snapshots();
+  // }
+
+  Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
+    // 1. Ambil format tanggal hari yang dipilih di kalender atas
     String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
 
+    // 2. 🔹 TRIK BYPASS: Pakai UID asli dari Firestore (Samakan dengan yang di MainScreen!)
+    final user = FirebaseAuth.instance.currentUser;
+    final String targetUid = user?.uid ?? "eRUHhnCwn9TKpSz5HixEKLvrtMf1";
+
+    // 3. Tarik data dari Firebase!
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
+        .doc(targetUid) // 👈 Pastikan pakai targetUid, bukan user.uid
         .collection('jadwal_obat')
-        .where('tanggal', isEqualTo: formattedDate)
+        .where('tanggal', isEqualTo: formattedDate) // 👈 Syarat filter tanggal
         .snapshots();
   }
 
@@ -659,12 +676,16 @@ class _JadwalPageState extends State<JadwalPage> {
                                                             context.pushNamed(
                                                               'detail-riwayat',
                                                               extra: {
-                                                                'namaObat': namaObat,
+                                                                'namaObat':
+                                                                    namaObat,
                                                                 'dosis': dosis,
                                                                 'fase': fase,
-                                                                'status': status,
-                                                                'waktu': waktuMinum,
-                                                                'tanggal': tanggal,
+                                                                'status':
+                                                                    status,
+                                                                'waktu':
+                                                                    waktuMinum,
+                                                                'tanggal':
+                                                                    tanggal,
                                                               },
                                                             );
                                                           }
