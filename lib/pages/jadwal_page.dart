@@ -500,12 +500,12 @@ class _JadwalPageState extends State<JadwalPage> {
                           String tombolLabel;
 
                           if (isHariIni) {
-                            if (status == "Belum diminum") {
-                              tombolDisabled = !sudahWaktunyaMinum;
-                              tombolLabel = "Minum";
-                            } else {
+                            if (status == "Sudah diminum") {
                               tombolDisabled = false;
                               tombolLabel = "Detail";
+                            } else {
+                              tombolDisabled = !sudahWaktunyaMinum;
+                              tombolLabel = "Minum";
                             }
                           } else {
                             tombolDisabled = true;

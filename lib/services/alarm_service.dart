@@ -6,7 +6,7 @@ import 'package:flutter/material.dart'; // Untuk debugPrint
 
 class AlarmService {
   // Gunakan channelKey baru untuk mereset cache Android
-  static const String _channelKey = 'tbmate_alarm_v4';
+  static const String _channelKey = 'tbmate_alarm_v6';
 
   // ==========================================
   // 1. FUNGSI UTAMA (CORE FEATURES)
@@ -26,6 +26,8 @@ class AlarmService {
           soundSource: 'resource://raw/amba',
           enableVibration: true,
           criticalAlerts: true,
+          defaultColor: const Color(0xFF2E7D32),
+          ledColor: const Color(0xFF2E7D32),
         )
       ],
       debug: true,
@@ -57,6 +59,7 @@ class AlarmService {
   static Future<void> scheduleAlarm({
     required int id,
     required DateTime date,
+    required String docId,
   }) async {
     if (date.isBefore(DateTime.now())) {
       debugPrint("DEBUG: Gagal menjadwalkan, waktu sudah lewat.");
@@ -70,32 +73,38 @@ class AlarmService {
       content: NotificationContent(
         id: id,
         channelKey: _channelKey,
-        title: '💊 WAKTUNYA MINUM OBAT',
-        body: 'Halo! Jangan lupa minum obat TB kamu sekarang ya, agar cepat pulih. 😊',
-        notificationLayout: NotificationLayout.BigText,
+        title: '💊 saatnya minum obat ya',
+        body: '4 KDT RHZE, 3 tablet pukul 08.00 😊',
+        notificationLayout: NotificationLayout.Default,
+        largeIcon: 'resource://drawable/happy',
+
         color: const Color(0xFF2E7D32),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF0F2F5),
+        icon: 'resource://drawable/tb_icon',
+
         category: NotificationCategory.Alarm,
         wakeUpScreen: true,
         fullScreenIntent: true,
         criticalAlert: true,
         locked: true,
-        icon: 'resource://drawable/happy',
         autoDismissible: false,
         customSound: 'resource://raw/amba',
+        payload: {
+          "docId": docId
+        },
       ),
       actionButtons: [
         NotificationActionButton(
           key: 'MINUM',
-          label: ' Minum 💊',
+          label: ' Minum Sekarang 💊',
           actionType: ActionType.Default,
           color: const Color(0xFF2E7D32),
         ),
         NotificationActionButton(
-          key: 'SKIP',
-          label: 'Skip',
-          actionType: ActionType.Default,
-        )
+            key: 'SKIP',
+            label: 'Tunda Dulu',
+            actionType: ActionType.Default,
+            color: const Color(0xFF2E7D32))
       ],
       schedule: NotificationCalendar(
         year: date.year,
@@ -112,28 +121,41 @@ class AlarmService {
     );
   }
 
-  static Future<void> repeatSnooze(int id, Duration duration) async {
+  static Future<void> repeatSnooze(int id, Duration duration, String docId) async {
+    await AwesomeNotifications().cancel(id);
     String localTimeZone =
         await AwesomeNotifications().getLocalTimeZoneIdentifier();
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
-        id: id + 1,
+        id: id ,
         channelKey: _channelKey,
         title: '⏰Pengingat Minum Obat',
         body: 'Obat belum diminum',
         category: NotificationCategory.Alarm,
-        notificationLayout: NotificationLayout.BigText,
+        notificationLayout: NotificationLayout.Default,
+        largeIcon: 'resource://drawable/happy',
+        color: const Color(0xFF2E7D32),
+        backgroundColor: Colors.white,
+        icon: 'resource://drawable/tb_icon',
         wakeUpScreen: true,
         fullScreenIntent: true,
         locked: true,
         autoDismissible: false,
         criticalAlert: true,
-        icon: 'resource://drawable/happy',
         customSound: 'resource://raw/amba',
+         payload: {
+            "docId": docId
+          },
       ),
-      schedule: NotificationInterval(
-        interval: duration,
+      schedule: NotificationCalendar(
+        year: DateTime.now().add(duration).year,
+        month: DateTime.now().add(duration).month,
+        day: DateTime.now().add(duration).day,
+        hour: DateTime.now().add(duration).hour,
+        minute: DateTime.now().add(duration).minute,
+        second: 0,
+        millisecond: 0,
         preciseAlarm: true,
         allowWhileIdle: true,
         repeats: false,
@@ -144,11 +166,13 @@ class AlarmService {
           key: 'MINUM',
           label: 'SUDAH MINUM 💊',
           actionType: ActionType.Default,
+          color: const Color(0xFF2E7D32),
         ),
         NotificationActionButton(
           key: 'SKIP',
           label: 'TUNDA LAGI',
           actionType: ActionType.Default,
+          color: const Color(0xFF2E7D32),
         )
       ],
     );

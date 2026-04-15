@@ -18,29 +18,59 @@ void main() async {
   tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
   await AlarmService.init();
-
-  await AwesomeNotifications().requestPermissionToSendNotifications();
-  AwesomeNotifications().setListeners(
-    onActionReceivedMethod: NotificationController.onActionReceived,
-    onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
-    onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
-    onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod,
-  );
+  // await AwesomeNotifications().cancelAllSchedules();
+  
   await initializeDateFormatting('id_ID', null);
   runApp(const TBMateApp());
 }
 
-class TBMateApp extends StatelessWidget {
+// class TBMateApp extends StatelessWidget {
+//   const TBMateApp({super.key});
+
+//   @override
+
+//   /// Builds a [MaterialApp] widget with the given configuration.
+//   ///
+//   /// The [MaterialApp] is configured with the given [appRouter] as the router
+//   /// configuration, the given [String] as the title, and the debug checked mode
+//   /// banner is disabled. The theme is set to a [ThemeData] with the 'Poppins'
+
+//   Widget build(BuildContext context) {
+//     return MaterialApp.router(
+//       routerConfig: appRouter,
+//       title: 'TBMate',
+//       debugShowCheckedModeBanner: false,
+//       theme: ThemeData(
+//         fontFamily: 'Poppins',
+//       ),
+//     );
+//   }
+// }
+
+class TBMateApp extends StatefulWidget {
   const TBMateApp({super.key});
 
   @override
+  State<TBMateApp> createState() => _TBMateAppState();
+}
 
-  /// Builds a [MaterialApp] widget with the given configuration.
-  ///
-  /// The [MaterialApp] is configured with the given [appRouter] as the router
-  /// configuration, the given [String] as the title, and the debug checked mode
-  /// banner is disabled. The theme is set to a [ThemeData] with the 'Poppins'
+class _TBMateAppState extends State<TBMateApp> {
+  @override
+  void initState() {
+    super.initState();
 
+    AwesomeNotifications().setListeners(
+    onActionReceivedMethod: NotificationController.onActionReceived,
+    onNotificationDisplayedMethod:
+        NotificationController.onNotificationDisplayedMethod,
+    onNotificationCreatedMethod:
+        NotificationController.onNotificationCreatedMethod,
+    onDismissActionReceivedMethod:
+        NotificationController.onDismissActionReceivedMethod,
+  );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: appRouter,
@@ -52,3 +82,4 @@ class TBMateApp extends StatelessWidget {
     );
   }
 }
+
