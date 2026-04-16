@@ -1,3 +1,4 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/services/alarm_service.dart';
 
 class EditSetTime extends StatefulWidget {
+  final String? docId;
   const EditSetTime({
     super.key,
+     this.docId,
   });
 
   @override
@@ -166,6 +169,9 @@ class _EditSetTime extends State<EditSetTime> {
       //     'updatedAt': FieldValue.serverTimestamp(),
       //   });
       // }
+
+      await AwesomeNotifications().cancelAllSchedules();
+
       for (var doc in snapshot.docs) {
         batch.update(doc.reference, {
           'waktu_minum': waktu,
@@ -183,14 +189,21 @@ class _EditSetTime extends State<EditSetTime> {
           minute,
         );
 
-        if (alarmDate.isBefore(now)) {
-          alarmDate = alarmDate.add(const Duration(days: 1));
+        if (alarmDate.isAfter(now)) {
+          // alarmDate = alarmDate.add(const Duration(days: 1));
+          await AlarmService.scheduleAlarm(
+            id: doc.id.hashCode.abs(),
+            date: alarmDate,
+            docId: doc.id,
+          );
         }
+
 
         // await AlarmService.scheduleAlarm(
         //   id: doc.id.hashCode,
         //   date: alarmDate,
         // );
+
       }
 
       await batch.commit();

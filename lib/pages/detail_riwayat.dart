@@ -11,11 +11,13 @@ class DetailRiwayat extends StatelessWidget {
   final String waktu;
   final String tanggal;
 
+
   // 🔹 Tambahan Parameter untuk Menerima Data AI & Foto dari Firestore
   final Map<String, dynamic>? buktiFoto;
   final String? verifikasiAi;
   final double? skorAi;
   final String? waktuVerifikasi;
+  final List<dynamic> riwayatTunda;
 
   const DetailRiwayat({
     super.key,
@@ -29,7 +31,9 @@ class DetailRiwayat extends StatelessWidget {
     this.verifikasiAi,
     this.skorAi,
     this.waktuVerifikasi,
+    required this.riwayatTunda});
   });
+
 
   // ==============================================================
   // 🔹 FUNGSI AJAIB: Menyulap Teks Base64 Kembali Menjadi Gambar
@@ -122,12 +126,19 @@ class DetailRiwayat extends StatelessWidget {
       // ================= HEADER =================
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text("Detail",
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold)),
+
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+        title: const Text(
+          "Detail",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
         centerTitle: true,
       ),
 
@@ -135,6 +146,7 @@ class DetailRiwayat extends StatelessWidget {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16),
+
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
@@ -161,6 +173,7 @@ class DetailRiwayat extends StatelessWidget {
                       Text(subtitleText),
                     ],
                   ),
+
                 ),
 
                 const SizedBox(height: 16),
@@ -179,6 +192,7 @@ class DetailRiwayat extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 8),
                 Text(dosis),
                 Text(fase),
@@ -186,6 +200,7 @@ class DetailRiwayat extends StatelessWidget {
                 Text("pukul $waktu",
                     style: const TextStyle(color: Colors.blue)),
                 const SizedBox(height: 24),
+
 
                 // =========================================================
                 // 🔹 BAGIAN BARU: HASIL VERIFIKASI AI & BUKTI FOTO vDOT
@@ -263,6 +278,7 @@ class DetailRiwayat extends StatelessWidget {
                     ],
                   ),
 
+
                   const SizedBox(height: 16),
 
                   // 3. FOTO BURST (MENELAN)
@@ -289,21 +305,70 @@ class DetailRiwayat extends StatelessWidget {
                   const SizedBox(height: 24),
                 ],
 
-                // ================= DROPDOWN CATATAN =================
-                const Divider(),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text("Lihat catatan"),
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text("Tidak ada catatan untuk jadwal ini.",
-                          style: TextStyle(color: Colors.grey)),
-                    )
-                  ],
-                )
-              ],
-            ),
+               
+
+              // ================= DROPDOWN CATATAN (DUMMY) =================
+              ExpansionTile(
+                 tilePadding: const EdgeInsets.symmetric(horizontal: 0),
+                 childrenPadding: const EdgeInsets.symmetric(horizontal: 0),
+                title: const Text("Lihat catatan",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                ),
+                children: riwayatTunda.isEmpty
+                    ? [
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text(
+                            "Tidak ada catatan untuk jadwal ini.",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      ]
+                    : riwayatTunda.map((item) {
+                        final alasan = item['alasan_tunda'] ?? "-";
+                        final waktu = item['waktu_tunda'];
+
+                        DateTime? date;
+                        if (waktu != null) {
+                           date = waktu.toDate();
+                         
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  alasan,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w500
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                date != null
+                                    ? DateFormat('HH.mm', 'id_ID').format(date)
+                                   : "-",
+                                style: const TextStyle(
+                                  color: Color(0xFF2E7D32),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+              )
+            ],
+
           ),
         ),
       ),

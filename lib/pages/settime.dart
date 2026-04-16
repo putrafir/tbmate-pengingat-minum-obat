@@ -204,10 +204,13 @@ class _SetWaktuState extends State<SetWaktu> {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        // await AlarmService.scheduleAlarm(
-        //   id: docRef.id.hashCode,
-        //   date: tgl,
-        // );
+       
+//           await AlarmService.scheduleAlarm(
+//             id: docRef.id.hashCode.abs(),
+//             date: tgl,
+//              docId: docRef.id,
+//           );
+
       }
 
       // Fase Lanjutan (3x seminggu, 16 minggu)
@@ -248,10 +251,14 @@ class _SetWaktuState extends State<SetWaktu> {
               'createdAt': FieldValue.serverTimestamp(),
             });
 
-            // await AlarmService.scheduleAlarm(
-            //   id: docRef.id.hashCode,
-            //   date: tgl,
-            // );
+
+//             await AlarmService.scheduleAlarm(
+//               id: docRef.id.hashCode.abs(),
+//               date: tgl,
+//                docId: docRef.id,
+//             );
+
+
           }
         }
       }

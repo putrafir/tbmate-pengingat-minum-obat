@@ -127,6 +127,7 @@ final GoRouter appRouter = GoRouter(
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
 
+
           return DetailRiwayat(
             namaObat: data['namaObat'],
             dosis: data['dosis'],
@@ -142,3 +143,4 @@ final GoRouter appRouter = GoRouter(
         },
       ),
     ]);
+

@@ -18,6 +18,7 @@ void main() async {
   tz_data.initializeTimeZones();
   tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
+
   // await AlarmService.init();
 
   // // 🔹 Listener TETAP di sini
@@ -31,6 +32,7 @@ void main() async {
   //       NotificationController.onDismissActionReceivedMethod,
   // );
 
+
   await initializeDateFormatting('id_ID', null);
 
   // 🔴 BARIS REQUEST PERMISSION SUDAH DIHAPUS DARI SINI
@@ -38,10 +40,34 @@ void main() async {
   runApp(const TBMateApp());
 }
 
-class TBMateApp extends StatelessWidget {
+// class TBMateApp extends StatelessWidget {
+//   const TBMateApp({super.key});
+
+//   @override
+
+//   /// Builds a [MaterialApp] widget with the given configuration.
+//   ///
+//   /// The [MaterialApp] is configured with the given [appRouter] as the router
+//   /// configuration, the given [String] as the title, and the debug checked mode
+//   /// banner is disabled. The theme is set to a [ThemeData] with the 'Poppins'
+
+//   Widget build(BuildContext context) {
+//     return MaterialApp.router(
+//       routerConfig: appRouter,
+//       title: 'TBMate',
+//       debugShowCheckedModeBanner: false,
+//       theme: ThemeData(
+//         fontFamily: 'Poppins',
+//       ),
+//     );
+//   }
+// }
+
+class TBMateApp extends StatefulWidget {
   const TBMateApp({super.key});
 
   @override
+
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: appRouter,
@@ -53,3 +79,4 @@ class TBMateApp extends StatelessWidget {
     );
   }
 }
+
