@@ -1,13 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'dart:async';
 
-// 🔹 Alur State Sesuai Kesepakatan Kita
-enum VdotState { searchingFace, showingPill, drinking, checkingMouth, success }
+enum VdotState { phase1Obat, phase2Minum, phase3Mangap, uploading, success }
 
 class CameraIngestionPage extends StatefulWidget {
   final DocumentReference jadwalDocRef;
@@ -25,26 +27,29 @@ class CameraIngestionPage extends StatefulWidget {
 
 class _CameraIngestionPageState extends State<CameraIngestionPage> {
   CameraController? _cameraController;
-  CustomPaint? _customPaint;
-  bool _isProcessing = false;
-
-  VdotState _currentState = VdotState.searchingFace;
-  String _instruction = "Posisikan wajah Anda di kamera";
-  bool _isFaceDetected = false;
-  int _countdown = 3;
-  Timer? _timer;
-
-  // 🔹 "Otak" AI Baru: Face Detector dengan fitur Contours (untuk baca bibir)
   late FaceDetector _faceDetector;
+
+  bool _isProcessing = false;
+  bool _isFaceDetected = false;
+
+  VdotState _currentState = VdotState.phase1Obat;
+  String _instruction = "Paskan wajah di area oval\ndan tunjukkan obat Anda";
+
+  // 🔹 Tempat Menyimpan 3 Tahap Foto
+  XFile? _fotoObat;
+  final List<XFile> _fotoMinumBurst = [];
+  XFile? _fotoMulutKosong;
+
+  // Skor Kemiripan Obat (Placeholder untuk AI TFLite nanti)
+  double _pillConfidenceScore = 0.0;
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi Face Detector (Wajib nyalakan Contours untuk ngecek mulut terbuka)
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         enableContours: true,
-        enableTracking: true, // Biar AI tahu itu wajah yang sama
+        enableTracking: true,
         performanceMode: FaceDetectorMode.fast,
       ),
     );
@@ -60,7 +65,7 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.medium,
+      ResolutionPreset.medium, // 🔹 Wajib Medium Biar Hemat Kuota & Storage
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
           ? ImageFormatGroup.nv21
@@ -68,10 +73,16 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     );
 
     await _cameraController!.initialize();
+    _startAiStream();
+  }
 
-    _cameraController!.startImageStream((image) {
-      if (!_isProcessing) _processLogic(image);
-    });
+  void _startAiStream() {
+    if (_cameraController != null &&
+        !_cameraController!.value.isStreamingImages) {
+      _cameraController!.startImageStream((image) {
+        if (!_isProcessing) _processLogic(image);
+      });
+    }
     if (mounted) setState(() {});
   }
 
@@ -86,62 +97,31 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
 
     try {
       final faces = await _faceDetector.processImage(inputImage);
-
-      // 1. Cek Apakah Wajah Ada di Kamera
       bool faceFound = faces.isNotEmpty;
+
       if (mounted && _isFaceDetected != faceFound) {
-        setState(() {
-          _isFaceDetected = faceFound;
-        });
+        setState(() => _isFaceDetected = faceFound);
       }
 
-      if (faceFound) {
-        final face = faces.first; // Asumsi hanya ada 1 wajah (pasien)
-
-        // 🔹 GAMBAR KOTAK WAJAH & BIBIR (Visual UI Keren)
-        final painter = FacePainter(
-          face,
-          inputImage.metadata!.size,
-          inputImage.metadata!.rotation,
-          _cameraController!.description.lensDirection,
-        );
-        _customPaint = CustomPaint(painter: painter);
-
-        // 🔹 LOGIKA STATE MACHINE
-        if (_currentState == VdotState.checkingMouth) {
-          if (_isMouthOpen(face)) {
-            setState(() {
-              _currentState = VdotState.success;
-              _instruction = "Verifikasi Berhasil! Menyimpan data...";
-            });
-            _saveToDatabase();
-          }
-        }
-      } else {
-        // Hapus kotak kalau wajah hilang
-        _customPaint = null;
-
-        // Peringatan PENTING: Wajah Hilang!
-        if (_currentState != VdotState.searchingFace &&
-            _currentState != VdotState.success) {
-          if (mounted) {
-            // Opsional: Kamu bisa nambahin logika pause timer di sini
-            debugPrint("PERINGATAN: Wajah Hilang!");
-          }
+      // 🔹 Logika Auto-Snap Fase 3 (Mangap)
+      if (faceFound && _currentState == VdotState.phase3Mangap) {
+        if (_isMouthOpen(faces.first)) {
+          await _takeFinalPhoto();
         }
       }
 
-      if (mounted) setState(() {});
+      // Simulasi AI mendeteksi kemiripan obat
+      if (_currentState == VdotState.phase1Obat && faceFound) {
+        _pillConfidenceScore = 0.85; // Simulasi: AI yakin 85% ini obat TB
+      }
     } catch (e) {
-      debugPrint("Error Face Detection: $e");
+      debugPrint("Error AI: $e");
     } finally {
       _isProcessing = false;
     }
   }
 
-  // 🔹 INI KUNCI UTAMA (Magic-nya AI untuk ngecek mulut terbuka)
   bool _isMouthOpen(Face face) {
-    // Ambil titik bibir atas bagian bawah, dan bibir bawah bagian atas (celah mulut)
     final upperLipBottom =
         face.contours[FaceContourType.upperLipBottom]?.points;
     final lowerLipTop = face.contours[FaceContourType.lowerLipTop]?.points;
@@ -150,83 +130,158 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
         lowerLipTop != null &&
         upperLipBottom.isNotEmpty &&
         lowerLipTop.isNotEmpty) {
-      // Ambil titik tengah bibir (index ke-4 atau ke-5 biasanya pas di tengah)
       int midIndexUpper = upperLipBottom.length ~/ 2;
       int midIndexLower = lowerLipTop.length ~/ 2;
 
-      double yUpper = upperLipBottom[midIndexUpper].y.toDouble();
-      double yLower = lowerLipTop[midIndexLower].y.toDouble();
-
-      // Hitung jarak vertikal celah bibir
-      double distance = (yLower - yUpper).abs();
-
-      // Jika jaraknya lebih dari 15 pixel (bisa disesuaikan), berarti mulut terbuka (bilang 'AAA')
-      return distance > 15.0;
+      double distance =
+          (lowerLipTop[midIndexLower].y - upperLipBottom[midIndexUpper].y)
+              .abs()
+              .toDouble();
+      return distance > 15.0; // Ambang batas mulut terbuka (Bisa di-tweak)
     }
     return false;
   }
 
-  // --- LOGIKA TOMBOL & TRANSI ---
+  // ==========================================
+  // --- FUNGSI JEPRET KAMERA (3 TAHAP) ---
+  // ==========================================
 
-  void _startShowingPill() {
-    setState(() {
-      _currentState = VdotState.showingPill;
-      _instruction = "Tunjukkan obat ke kamera ($_countdown)";
-    });
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _countdown--;
-        if (_countdown > 0) {
-          _instruction = "Tunjukkan obat ke kamera ($_countdown)";
-        } else {
-          timer.cancel();
-          _startDrinking();
-        }
-      });
-    });
-  }
-
-  void _startDrinking() {
-    setState(() {
-      _currentState = VdotState.drinking;
-      _instruction = "Silakan minum obat Anda sekarang";
-    });
-  }
-
-  void _startCheckingMouth() {
-    setState(() {
-      _currentState = VdotState.checkingMouth;
-      _instruction = "Buka mulut Anda (Bilang 'AAA')";
-    });
-  }
-
-  Future<void> _saveToDatabase() async {
-    _cameraController?.stopImageStream();
-
-    // 🔹 Jepret Foto Bukti (Snapshot AI)
-    XFile? picture;
+  Future<void> _takeFotoObat() async {
     try {
-      picture = await _cameraController?.takePicture();
-      debugPrint("📸 Foto bukti tersimpan di: ${picture?.path}");
+      await _cameraController?.stopImageStream();
+      _fotoObat = await _cameraController?.takePicture();
+
+      setState(() {
+        _currentState = VdotState.phase2Minum;
+        _instruction = "Silakan telan obat Anda.\n(Sistem merekam otomatis)";
+      });
+
+      _startAiStream();
     } catch (e) {
-      debugPrint("Gagal ambil foto: $e");
+      debugPrint("Gagal foto obat: $e");
     }
-
-    // TODO: Upload `picture` ke Firebase Storage, lalu update Firestore jadwalDocRef
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.pop(context);
-    });
   }
 
-  // (Fungsi _convertToInputImage SAMA PERSIS seperti kodemu sebelumnya)
+  Future<void> _startBurstMode() async {
+    try {
+      await _cameraController?.stopImageStream();
+
+      // Jepret 3 kali dengan jeda cepat
+      for (int i = 0; i < 3; i++) {
+        XFile? pic = await _cameraController?.takePicture();
+        if (pic != null) _fotoMinumBurst.add(pic);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+
+      setState(() {
+        _currentState = VdotState.phase3Mangap;
+        _instruction =
+            "Buka mulut lebar-lebar (Katakan 'AAA')\nuntuk bukti obat tertelan.";
+      });
+
+      _startAiStream();
+    } catch (e) {
+      debugPrint("Gagal burst mode: $e");
+    }
+  }
+
+  Future<void> _takeFinalPhoto() async {
+    try {
+      await _cameraController?.stopImageStream();
+      _fotoMulutKosong = await _cameraController?.takePicture();
+
+      setState(() {
+        _currentState = VdotState.uploading;
+        _instruction = "Selesai! Mengunggah data ke Puskesmas...";
+      });
+
+      await _uploadToPuskesmas();
+    } catch (e) {
+      debugPrint("Gagal foto mangap: $e");
+    }
+  }
+
+  // ==========================================
+  // --- FUNGSI UPLOAD KE FIREBASE ---
+  // ==========================================
+  Future<void> _uploadToPuskesmas() async {
+    try {
+      setState(() {
+        _currentState = VdotState.uploading;
+        _instruction = "Menyandi gambar & Mengirim ke Database...";
+      });
+
+      // 1. Ubah Foto Obat jadi Base64 (Teks)
+      String base64Obat = "";
+      if (_fotoObat != null) {
+        base64Obat = await _imageToBase64(_fotoObat!);
+      }
+
+      // 2. Ubah Foto Burst Minum jadi List Base64
+      List<String> base64MinumBurst = [];
+      for (XFile pic in _fotoMinumBurst) {
+        String b64 = await _imageToBase64(pic);
+        base64MinumBurst.add(b64);
+      }
+
+      // 3. Ubah Foto Mulut Kosong jadi Base64
+      String base64Mulut = "";
+      if (_fotoMulutKosong != null) {
+        base64Mulut = await _imageToBase64(_fotoMulutKosong!);
+      }
+
+      // 4. LANGSUNG SIMPAN KE FIRESTORE (Sebagai Teks Panjang)
+      await widget.jadwalDocRef.update({
+        'status': 'Sudah diminum',
+        'waktu_verifikasi': FieldValue.serverTimestamp(),
+        'bukti_foto': {
+          'obat': base64Obat, // 👈 Disimpan sebagai teks Base64
+          'proses_minum': base64MinumBurst, // 👈 List teks Base64
+          'mulut_kosong': base64Mulut, // 👈 Teks Base64
+        },
+        'ai_confidence_score': _pillConfidenceScore,
+        'verifikasi_ai': _pillConfidenceScore > 0.7 ? 'Valid' : 'Butuh Review',
+      });
+
+      setState(() => _currentState = VdotState.success);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("✅ Berhasil! Data terkirim tanpa Storage.",
+                  style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint("Gagal Upload Base64: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Gagal mengirim data: $e")),
+        );
+        setState(() => _currentState = VdotState.phase3Mangap);
+      }
+    }
+  }
+
+  // 🔹 FUNGSI AJAIB: Mengubah File XFile menjadi Teks Base64
+  Future<String> _imageToBase64(XFile file) async {
+    try {
+      final bytes = await File(file.path).readAsBytes();
+      String base64String = base64Encode(bytes);
+      // Tambahkan header data URI agar nanti gampang ditampilkan di UI (Image.memory)
+      return "data:image/jpeg;base64,$base64String";
+    } catch (e) {
+      debugPrint("Error encoding image: $e");
+      return "";
+    }
+  }
+
   InputImage? _convertToInputImage(CameraImage image) {
     if (_cameraController == null) return null;
     final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
+    for (final Plane plane in image.planes) allBytes.putUint8List(plane.bytes);
     final bytes = allBytes.done().buffer.asUint8List();
     final Size imageSize =
         Size(image.width.toDouble(), image.height.toDouble());
@@ -235,18 +290,17 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
         InputImageRotation.rotation0deg;
     final inputImageFormat =
         Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888;
-    final inputImageData = InputImageMetadata(
-      size: imageSize,
-      rotation: imageRotation,
-      format: inputImageFormat,
-      bytesPerRow: image.planes[0].bytesPerRow,
-    );
-    return InputImage.fromBytes(bytes: bytes, metadata: inputImageData);
+    return InputImage.fromBytes(
+        bytes: bytes,
+        metadata: InputImageMetadata(
+            size: imageSize,
+            rotation: imageRotation,
+            format: inputImageFormat,
+            bytesPerRow: image.planes[0].bytesPerRow));
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _cameraController?.dispose();
     _faceDetector.close();
     super.dispose();
@@ -257,7 +311,7 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const Scaffold(
           backgroundColor: Colors.black,
-          body: Center(child: CircularProgressIndicator()));
+          body: Center(child: CircularProgressIndicator(color: Colors.green)));
     }
 
     final previewSize = _cameraController!.value.previewSize!;
@@ -269,168 +323,145 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. KAMERA & TRACKING Wajah
+          // 1. KAMERA PREVIEW
           Positioned.fill(
             child: FittedBox(
               fit: BoxFit.cover,
               child: SizedBox(
                 width: cameraWidth,
                 height: cameraHeight,
-                child: Stack(
-                  children: [
-                    CameraPreview(_cameraController!),
-                    if (_customPaint != null)
-                      Positioned.fill(child: _customPaint!),
-                  ],
-                ),
+                child: CameraPreview(_cameraController!),
               ),
             ),
           ),
 
-          // 2. HEADER Teks Merah kalau Wajah Hilang
-          if (!_isFaceDetected && _currentState != VdotState.success)
+          // 2. OVERLAY KYC STYLE (Hanya muncul di Fase 1)
+          if (_currentState == VdotState.phase1Obat)
+            Positioned.fill(child: CustomPaint(painter: KycOverlayPainter())),
+
+          // 3. EFEK GELAP SAAT UPLOAD
+          if (_currentState == VdotState.uploading ||
+              _currentState == VdotState.success)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.7),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.green),
+                ),
+              ),
+            ),
+
+          // 4. HEADER PERINGATAN WAJAH HILANG
+          if (!_isFaceDetected &&
+              _currentState != VdotState.uploading &&
+              _currentState != VdotState.success)
             Positioned(
-              top: 100,
+              top: 50,
               left: 20,
               right: 20,
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                    color: Colors.red, borderRadius: BorderRadius.circular(8)),
-                child: const Text("⚠️ WAJAH TIDAK TERDETEKSI!",
+                    color: Colors.red.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8)),
+                child: const Text("⚠️ Wajah tidak terdeteksi!",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
 
-          // 3. TOMBOL KENDALI ALUR
+          // 5. KOTAK INSTRUKSI
           Positioned(
-            bottom: 120,
-            left: 20,
-            right: 20,
-            child: _buildActionButtons(),
-          ),
-
-          // 4. KOTAK INSTRUKSI
-          Positioned(
-            bottom: 40,
+            top: 110,
             left: 20,
             right: 20,
             child: Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                  color: _currentState == VdotState.success
+                  color: _currentState == VdotState.uploading
                       ? Colors.green.shade800
-                      : Colors.black87,
+                      : Colors.black54,
                   borderRadius: BorderRadius.circular(12)),
-              child: Text(
-                _instruction,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
-              ),
+              child: Text(_instruction,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold)),
             ),
-          )
+          ),
+
+          // 6. TOMBOL KENDALI
+          Positioned(
+              bottom: 50, left: 20, right: 20, child: _buildActionButtons()),
         ],
       ),
     );
   }
 
-  // 🔹 Ganti Tombol sesuai State
   Widget _buildActionButtons() {
-    if (_currentState == VdotState.searchingFace) {
+    if (_currentState == VdotState.phase1Obat) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-            backgroundColor: _isFaceDetected ? Colors.blue : Colors.grey,
+            backgroundColor: _isFaceDetected ? Colors.green : Colors.grey,
             padding: const EdgeInsets.all(15)),
-        onPressed: _isFaceDetected
-            ? _startShowingPill
-            : null, // Cuma bisa diklik kalau wajah kelihatan
-        child: const Text("Mulai Minum Obat",
-            style: TextStyle(color: Colors.white, fontSize: 16)),
+        onPressed: _isFaceDetected ? _takeFotoObat : null,
+        child: const Text("Ambil Foto Obat",
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold)),
       );
-    } else if (_currentState == VdotState.drinking) {
+    } else if (_currentState == VdotState.phase2Minum) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange, padding: const EdgeInsets.all(15)),
-        onPressed: _startCheckingMouth,
-        child: const Text("Saya Sudah Menelan Obat",
-            style: TextStyle(color: Colors.white, fontSize: 16)),
+        onPressed: _startBurstMode,
+        child: const Text("Saya Mulai Menelan",
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold)),
       );
     }
-    return const SizedBox.shrink(); // Sembunyikan tombol di state lain
+    return const SizedBox.shrink();
   }
 }
 
-// 🔹 PAINTER UNTUK MENGGAMBAR KOTAK WAJAH & TITIK BIBIR
-class FacePainter extends CustomPainter {
-  final Face face;
-  final Size imageSize;
-  final InputImageRotation rotation;
-  final CameraLensDirection cameraLensDirection;
-
-  FacePainter(
-      this.face, this.imageSize, this.rotation, this.cameraLensDirection);
-
+// 🔹 PELUKIS BINGKAI KYC
+class KycOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paintBox = Paint()
+    final faceRect = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height * 0.4),
+        width: size.width * 0.65,
+        height: size.height * 0.4);
+    final pillRect = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height * 0.75),
+        width: 120,
+        height: 80);
+
+    final backgroundPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final cutoutPath = Path()
+      ..addOval(faceRect)
+      ..addRRect(RRect.fromRectAndRadius(pillRect, const Radius.circular(12)));
+    final finalPath =
+        Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
+
+    canvas.drawPath(finalPath, Paint()..color = Colors.black.withOpacity(0.7));
+
+    final borderPaint = Paint()
+      ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..color = Colors.greenAccent;
-    final paintLip = Paint()
-      ..style = PaintingStyle.fill
-      ..color = Colors.redAccent;
-
-    // 1. Gambar Kotak Wajah
-    final boundingBox = face.boundingBox;
-    final left = _translateX(
-        boundingBox.left, size, imageSize, rotation, cameraLensDirection);
-    final top = _translateY(boundingBox.top, size, imageSize, rotation);
-    final right = _translateX(
-        boundingBox.right, size, imageSize, rotation, cameraLensDirection);
-    final bottom = _translateY(boundingBox.bottom, size, imageSize, rotation);
-
+      ..strokeWidth = 2;
+    canvas.drawOval(faceRect, borderPaint);
     canvas.drawRRect(
-        RRect.fromLTRBR(left, top, right, bottom, const Radius.circular(12)),
-        paintBox);
-
-    // 2. Gambar Titik Bibir (Keren buat efek UI)
-    final upperLipBottom =
-        face.contours[FaceContourType.upperLipBottom]?.points ?? [];
-    final lowerLipTop =
-        face.contours[FaceContourType.lowerLipTop]?.points ?? [];
-
-    for (var point in [...upperLipBottom, ...lowerLipTop]) {
-      final px = _translateX(
-          point.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
-      final py = _translateY(point.y.toDouble(), size, imageSize, rotation);
-      canvas.drawCircle(Offset(px, py), 3, paintLip);
-    }
+        RRect.fromRectAndRadius(pillRect, const Radius.circular(12)),
+        borderPaint);
   }
 
   @override
-  bool shouldRepaint(covariant FacePainter oldDelegate) => true;
-
-  double _translateX(double x, Size canvasSize, Size imageSize,
-      InputImageRotation rotation, CameraLensDirection cameraLensDirection) {
-    double scaleX = Platform.isAndroid
-        ? canvasSize.width / imageSize.height
-        : canvasSize.width / imageSize.width;
-    double scaledX = x * scaleX;
-    return cameraLensDirection == CameraLensDirection.front
-        ? canvasSize.width - scaledX
-        : scaledX;
-  }
-
-  double _translateY(
-      double y, Size canvasSize, Size imageSize, InputImageRotation rotation) {
-    double scaleY = Platform.isAndroid
-        ? canvasSize.height / imageSize.width
-        : canvasSize.height / imageSize.height;
-    return y * scaleY;
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -673,6 +673,30 @@ class _JadwalPageState extends State<JadwalPage> {
                                                               ),
                                                             );
                                                           } else {
+                                                            final data = doc
+                                                                    .data()
+                                                                as Map<String,
+                                                                    dynamic>;
+
+                                                            // 🔹 TAMBAHAN BARU: Ambil waktu asli dia minum dari Firestore
+                                                            String waktuAktual =
+                                                                waktuMinum; // Default ke jadwal awal
+                                                            if (data[
+                                                                    'waktu_verifikasi'] !=
+                                                                null) {
+                                                              // Ubah format Timestamp dari Firebase jadi teks Jam:Menit
+                                                              DateTime
+                                                                  verifDate =
+                                                                  (data['waktu_verifikasi']
+                                                                          as Timestamp)
+                                                                      .toDate();
+                                                              waktuAktual =
+                                                                  DateFormat(
+                                                                          'HH:mm')
+                                                                      .format(
+                                                                          verifDate);
+                                                            }
+
                                                             context.pushNamed(
                                                               'detail-riwayat',
                                                               extra: {
@@ -683,9 +707,20 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                 'status':
                                                                     status,
                                                                 'waktu':
-                                                                    waktuMinum,
+                                                                    waktuMinum, // Ini jadwal asli (misal 13:00)
                                                                 'tanggal':
                                                                     tanggal,
+                                                                'buktiFoto': data[
+                                                                    'bukti_foto'],
+                                                                'verifikasiAi':
+                                                                    data[
+                                                                        'verifikasi_ai'],
+                                                                'skorAi': data[
+                                                                    'ai_confidence_score'],
+
+                                                                // 🔹 KIRIM WAKTU AKTUAL KE ROUTER
+                                                                'waktuVerifikasi':
+                                                                    waktuAktual,
                                                               },
                                                             );
                                                           }

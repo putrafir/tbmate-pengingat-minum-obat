@@ -134,6 +134,10 @@ final GoRouter appRouter = GoRouter(
             status: data['status'],
             waktu: data['waktu'],
             tanggal: data['tanggal'],
+            buktiFoto: data['buktiFoto'],
+            verifikasiAi: data['verifikasiAi'],
+            skorAi: data['skorAi']?.toDouble(),
+            waktuVerifikasi: data['waktuVerifikasi'],
           );
         },
       ),
