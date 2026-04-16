@@ -477,6 +477,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                   ),
                                 ],
                               ),
+
                             )
                           else
                             Column(
@@ -566,6 +567,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                     ],
                                   ),
                                   child: Row(
+
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [

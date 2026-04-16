@@ -203,10 +203,11 @@ class _SetWaktuState extends State<SetWaktu> {
           'berat_badan': beratBadan,
           'createdAt': FieldValue.serverTimestamp(),
         });
-      
+       
           await AlarmService.scheduleAlarm(
-            id: docRef.id.hashCode,
+            id: docRef.id.hashCode.abs(),
             date: tgl,
+             docId: docRef.id,
           );
       }
 
@@ -252,8 +253,9 @@ class _SetWaktuState extends State<SetWaktu> {
             });
 
             await AlarmService.scheduleAlarm(
-              id: docRef.id.hashCode,
+              id: docRef.id.hashCode.abs(),
               date: tgl,
+               docId: docRef.id,
             );
 
           }
