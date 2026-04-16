@@ -47,39 +47,41 @@ class _SignUpState extends State<SignUp> {
     setState(() => isLoading = true);
 
     try {
-      final userCredential = await authService.register(email, password);
+      final userCredential = await authService.signInWithGoogle();
+
       if (userCredential != null) {
         final user = userCredential.user;
         final usersRef = FirebaseFirestore.instance.collection('users');
 
-        final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+        // 🔹 CEK DAN SIMPAN DATA KE FIRESTORE (Ini yang tadi kurang)
+        final doc = await usersRef.doc(user!.uid).get();
+        if (!doc.exists) {
+          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+          await usersRef.doc(user.uid).set({
+            'uniqueId': uniqueId,
+            'email': user.email,
+            'role': null,
+            'nickName': user.displayName ?? '',
+            'ageGroup': null,
+            'weight': null,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
 
-        // 🔹 Simpan data user baru ke Firestore
-        await usersRef.doc(user!.uid).set({
-          'uniqueId': uniqueId,
-          'email': user.email,
-          'role': null,
-          'nickName': null,
-          'ageGroup': null,
-          'weight': null,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
+        // 🔹 WAJIB CEK MOUNTED SETELAH AWAIT
+        if (!mounted) return;
         setState(() => isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Akun berhasil dibuat!")),
+          const SnackBar(content: Text("Berhasil sign up dengan Google!")),
         );
-
-        // 🔹 Arahkan ke halaman input role
         context.go('/input-role');
       } else {
+        if (!mounted) return;
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email sudah terdaftar!")),
-        );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Terjadi kesalahan: $e")),
