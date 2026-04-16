@@ -15,72 +15,88 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   final authService = AuthService();
   bool isLoading = false;
-
   Future<void> _loginWithGoogle() async {
     setState(() => isLoading = true);
-    final userCredential = await authService.signInWithGoogle();
-    setState(() => isLoading = false);
 
-    if (userCredential != null) {
-      final user = userCredential.user;
-      final usersRef = FirebaseFirestore.instance.collection('users');
+    try {
+      final userCredential = await authService.signInWithGoogle();
 
-      // Cek apakah user sudah ada di Firestore
-      final doc = await usersRef.doc(user!.uid).get();
+      // Cek apakah widget masih aktif setelah proses async selesai
+      if (!mounted) return;
+      setState(() => isLoading = false);
 
-      if (!doc.exists) {
-        final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+      if (userCredential != null) {
+        final user = userCredential.user;
+        final usersRef = FirebaseFirestore.instance.collection('users');
 
-        // Jika user baru, simpan data dasar dulu
-        await usersRef.doc(user.uid).set({
-          'uniqueId': uniqueId, // <--- Tambahkan ini
-          'email': user.email,
-          'role': null,
-          'nickName': user.displayName ?? '',
-          'ageGroup': null,
-          'weight': null,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
+        // Cek apakah user sudah ada di Firestore
+        final doc = await usersRef.doc(user!.uid).get();
 
-      // Ambil data terbaru user
-      final userData = (await usersRef.doc(user.uid).get()).data();
-      final role = userData?['role'];
-      // Tentukan halaman tujuan berdasarkan kelengkapan data
-      // 🔹 Tentukan halaman tujuan berdasarkan role dan kelengkapan data
-      if (role == null) {
-        context.go('/input-role');
-        return;
-      } else if (role?.toString().toUpperCase() == 'PMO') {
-        if (userData?['nickName'] == null || userData?['nickName'] == '') {
-          context.go('/input-name');
-          return;
-        } else {
-          context.go('/pmo-main-screen');
-          return;
+        if (!doc.exists) {
+          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+
+          // Jika user baru, simpan data dasar dulu
+          await usersRef.doc(user.uid).set({
+            'uniqueId': uniqueId,
+            'email': user.email,
+            'role': null,
+            'nickName': user.displayName ?? '',
+            'ageGroup': null,
+            'weight': null,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
         }
-      } else if (role?.toString().toUpperCase() == 'PASIEN') {
-        if (userData?['nickName'] == null || userData?['nickName'] == '') {
-          context.go('/input-name');
-          return;
-        } else if (userData?['ageGroup'] == null) {
-          context.go('/input-usia');
-          return;
-        } else if (userData?['weight'] == null) {
-          context.go('/input-weight');
-          return;
-        } else {
-          context.go('/main-screen');
-          return;
-        }
-      }
 
+        // Ambil data terbaru user
+        final userData = (await usersRef.doc(user.uid).get()).data();
+        final role = userData?['role'];
+
+        if (!mounted) return; // Wajib sebelum panggil context lagi
+
+        // TAMPILKAN SNACKBAR SEBELUM NAVIGASI (karena ada return di bawah)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Berhasil login dengan Google!")),
+        );
+
+        // Tentukan halaman tujuan berdasarkan role dan kelengkapan data
+        if (role == null) {
+          context.go('/input-role');
+          return;
+        } else if (role?.toString().toUpperCase() == 'PMO') {
+          if (userData?['nickName'] == null || userData?['nickName'] == '') {
+            context.go('/input-name');
+            return;
+          } else {
+            context.go('/pmo-main-screen');
+            return;
+          }
+        } else if (role?.toString().toUpperCase() == 'PASIEN') {
+          if (userData?['nickName'] == null || userData?['nickName'] == '') {
+            context.go('/input-name');
+            return;
+          } else if (userData?['ageGroup'] == null) {
+            context.go('/input-usia');
+            return;
+          } else if (userData?['weight'] == null) {
+            context.go('/input-weight');
+            return;
+          } else {
+            context.go('/main-screen');
+            return;
+          }
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Gagal login: Proses dibatalkan atau user null")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Berhasil login dengan Google!")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal login dengan Google")),
+        SnackBar(content: Text("Error Sistem: $e")),
       );
     }
   }
