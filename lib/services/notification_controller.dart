@@ -75,8 +75,12 @@ class NotificationController {
                     .doc(docId)
                     .update({
                   "status": "Ditunda",
-                  "alasan_tunda": alasan,
-                  "waktu_tunda": FieldValue.serverTimestamp(),
+                  "riwayat_tunda": FieldValue.arrayUnion([
+                    {
+                      "alasan_tunda": alasan,
+                      "waktu_tunda": Timestamp.now(),
+                    }
+                  ])
                 });
               }
               // await AlarmService.repeatSnooze(
@@ -85,7 +89,7 @@ class NotificationController {
               // );
               AlarmService.repeatSnooze(
                 id,
-                Duration(minutes: 5),
+                Duration(minutes: 1),
                 docId,
               );
               _isProcessin = false;

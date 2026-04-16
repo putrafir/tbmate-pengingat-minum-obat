@@ -131,6 +131,7 @@ final GoRouter appRouter = GoRouter(navigatorKey:navigatorKey, initialLocation: 
       status: data['status'],
       waktu: data['waktu'],
       tanggal: data['tanggal'],
+      riwayatTunda: data['riwayat_tunda'] ?? [],
     );
   },
 ),

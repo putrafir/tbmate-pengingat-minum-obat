@@ -87,7 +87,7 @@ class _MainScreenState extends State<MainScreen> {
     // 🔹 Di sini kita kirim nickName ke setiap halaman
     final pages = [
       JadwalPage(nickName: nickName ?? "Pengguna"),
-      RiwayatPage(),
+      // RiwayatPage(),
       AkunPage(
         fullName: fullName ?? "Pengguna",
         uniqueId: uniqueId!,
@@ -118,19 +118,19 @@ class _MainScreenState extends State<MainScreen> {
             ),
             label: "Jadwal",
           ),
-          BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/icons/riwayat.svg',
-              height: 24,
-              color: _selectedIndex == 1 ? kPrimaryGreen : Colors.grey,
-            ),
-            label: "Akun",
-          ),
+          // BottomNavigationBarItem(
+          //   icon: SvgPicture.asset(
+          //     'assets/icons/riwayat.svg',
+          //     height: 24,
+          //     color: _selectedIndex == 1 ? kPrimaryGreen : Colors.grey,
+          //   ),
+          //   label: "Akun",
+          // ),
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
               'assets/icons/akun.svg',
               height: 24,
-              color: _selectedIndex == 2 ? kPrimaryGreen : Colors.grey,
+              color: _selectedIndex == 1 ? kPrimaryGreen : Colors.grey,
             ),
             label: "Akun",
           ),

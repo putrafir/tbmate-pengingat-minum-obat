@@ -8,16 +8,17 @@ class DetailRiwayat extends StatelessWidget {
   final String status;
   final String waktu;
   final String tanggal;
+  final List<dynamic> riwayatTunda;
 
-  const DetailRiwayat({
-    super.key,
-    required this.namaObat,
-    required this.dosis,
-    required this.fase,
-    required this.status,
-    required this.waktu,
-    required this.tanggal,
-  });
+  const DetailRiwayat(
+      {super.key,
+      required this.namaObat,
+      required this.dosis,
+      required this.fase,
+      required this.status,
+      required this.waktu,
+      required this.tanggal,
+      required this.riwayatTunda});
 
   @override
   Widget build(BuildContext context) {
@@ -52,20 +53,17 @@ class DetailRiwayat extends StatelessWidget {
       // ================= HEADER =================
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
-
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
-
         title: const Text(
           "Detail",
           style: TextStyle(
-            color: Colors.white, 
-            fontSize: 16, 
+            color: Colors.white,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-
         centerTitle: true,
       ),
 
@@ -78,7 +76,6 @@ class DetailRiwayat extends StatelessWidget {
             color: Colors.white,
           ),
           padding: const EdgeInsets.all(16),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -107,7 +104,7 @@ class DetailRiwayat extends StatelessWidget {
               const SizedBox(height: 16),
 
               // ================= TANGGAL =================
-              Text(formattedDate), 
+              Text(formattedDate),
 
               const SizedBox(height: 16),
 
@@ -153,16 +150,63 @@ class DetailRiwayat extends StatelessWidget {
 
               // ================= DROPDOWN CATATAN (DUMMY) =================
               ExpansionTile(
-                title: const Text("Lihat catatan"),
-                children: const [
-                  Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      "Tidak ada catatan untuk jadwal ini.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                ],
+                 tilePadding: const EdgeInsets.symmetric(horizontal: 0),
+                 childrenPadding: const EdgeInsets.symmetric(horizontal: 0),
+                title: const Text("Lihat catatan",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                ),
+                children: riwayatTunda.isEmpty
+                    ? [
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text(
+                            "Tidak ada catatan untuk jadwal ini.",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      ]
+                    : riwayatTunda.map((item) {
+                        final alasan = item['alasan_tunda'] ?? "-";
+                        final waktu = item['waktu_tunda'];
+
+                        DateTime? date;
+                        if (waktu != null) {
+                           date = waktu.toDate();
+                         
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  alasan,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w500
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                date != null
+                                    ? DateFormat('HH.mm', 'id_ID').format(date)
+                                   : "-",
+                                style: const TextStyle(
+                                  color: Color(0xFF2E7D32),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
               )
             ],
           ),

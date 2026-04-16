@@ -477,7 +477,6 @@ class _JadwalPageState extends State<JadwalPage> {
                                   ),
                                 ],
                               ),
-
                             )
                           else
                             Column(
@@ -525,16 +524,23 @@ class _JadwalPageState extends State<JadwalPage> {
 
                                 // 3. Fix Logika Tombol Detail
                                 if (isHariIni) {
-                                  if (status == "Belum diminum") {
-                                    tombolDisabled = !sudahWaktunyaMinum;
-                                    tombolLabel = "Minum";
-                                  } else {
+                                  if (status == "Sudah diminum") {
                                     tombolDisabled = false;
                                     tombolLabel = "Detail";
+                                  } else {
+                                    tombolDisabled = !sudahWaktunyaMinum;;
+                                    tombolLabel = "Minum";
                                   }
+                            //       if (status == "Belum diminum") {
+                            //   tombolDisabled = !sudahWaktunyaMinum;
+                            //   tombolLabel = "Minum";
+                            // } else {
+                            //   tombolDisabled = false;
+                            //   tombolLabel = "Detail";
+                            // }
                                 } else {
                                   tombolDisabled =
-                                      false; // Diubah jadi false supaya bisa diklik
+                                      true; // Diubah jadi false supaya bisa diklik
                                   tombolLabel = "Detail";
                                 }
 
@@ -567,7 +573,6 @@ class _JadwalPageState extends State<JadwalPage> {
                                     ],
                                   ),
                                   child: Row(
-
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
@@ -661,12 +666,17 @@ class _JadwalPageState extends State<JadwalPage> {
                                                             context.pushNamed(
                                                               'detail-riwayat',
                                                               extra: {
-                                                                'namaObat': namaObat,
+                                                                'namaObat':
+                                                                    namaObat,
                                                                 'dosis': dosis,
                                                                 'fase': fase,
-                                                                'status': status,
-                                                                'waktu': waktuMinum,
-                                                                'tanggal': tanggal,
+                                                                'status':
+                                                                    status,
+                                                                'waktu':
+                                                                    waktuMinum,
+                                                                'tanggal':
+                                                                    tanggal,
+                                                                'riwayat_tunda': data['riwayat_tunda'] ?? [],
                                                               },
                                                             );
                                                           }
