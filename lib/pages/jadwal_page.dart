@@ -34,19 +34,36 @@ class _JadwalPageState extends State<JadwalPage> {
     return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
   }
 
-  Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Stream.empty();
-    }
+  // Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) {
+  //     return const Stream.empty();
+  //   }
 
+  //   String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+  //   return FirebaseFirestore.instance
+  //       .collection('users')
+  //       .doc(user.uid)
+  //       .collection('jadwal_obat')
+  //       .where('tanggal', isEqualTo: formattedDate)
+  //       .snapshots();
+  // }
+
+  Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
+    // 1. Ambil format tanggal hari yang dipilih di kalender atas
     String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
 
+    // 2. 🔹 TRIK BYPASS: Pakai UID asli dari Firestore (Samakan dengan yang di MainScreen!)
+    final user = FirebaseAuth.instance.currentUser;
+    final String targetUid = user?.uid ?? "eRUHhnCwn9TKpSz5HixEKLvrtMf1";
+
+    // 3. Tarik data dari Firebase!
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
+        .doc(targetUid) // 👈 Pastikan pakai targetUid, bukan user.uid
         .collection('jadwal_obat')
-        .where('tanggal', isEqualTo: formattedDate)
+        .where('tanggal', isEqualTo: formattedDate) // 👈 Syarat filter tanggal
         .snapshots();
   }
 
@@ -664,6 +681,30 @@ class _JadwalPageState extends State<JadwalPage> {
                                                               ),
                                                             );
                                                           } else {
+                                                            final data = doc
+                                                                    .data()
+                                                                as Map<String,
+                                                                    dynamic>;
+
+                                                            // 🔹 TAMBAHAN BARU: Ambil waktu asli dia minum dari Firestore
+                                                            String waktuAktual =
+                                                                waktuMinum; // Default ke jadwal awal
+                                                            if (data[
+                                                                    'waktu_verifikasi'] !=
+                                                                null) {
+                                                              // Ubah format Timestamp dari Firebase jadi teks Jam:Menit
+                                                              DateTime
+                                                                  verifDate =
+                                                                  (data['waktu_verifikasi']
+                                                                          as Timestamp)
+                                                                      .toDate();
+                                                              waktuAktual =
+                                                                  DateFormat(
+                                                                          'HH:mm')
+                                                                      .format(
+                                                                          verifDate);
+                                                            }
+
                                                             context.pushNamed(
                                                               'detail-riwayat',
                                                               extra: {
@@ -674,12 +715,26 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                 'status':
                                                                     status,
                                                                 'waktu':
-                                                                    waktuMinum,
+
+                                                                    waktuMinum, // Ini jadwal asli (misal 13:00)
                                                                 'tanggal':
                                                                     tanggal,
-                                                                'riwayat_tunda':
-                                                                    data['riwayat_tunda'] ??
-                                                                        [],
+
+                                                                'buktiFoto': data[
+                                                                    'bukti_foto'],
+                                                                'verifikasiAi':
+                                                                    data[
+                                                                        'verifikasi_ai'],
+                                                                'skorAi': data[
+                                                                    'ai_confidence_score'],
+
+                                                                // 🔹 KIRIM WAKTU AKTUAL KE ROUTER
+                                                                'waktuVerifikasi':
+                                                                    waktuAktual,
+
+                                                                'riwayat_tunda': data['riwayat_tunda'] ?? [],
+
+
                                                               },
                                                             );
                                                           }

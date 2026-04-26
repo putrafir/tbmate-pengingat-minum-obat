@@ -197,6 +197,13 @@ class _EditSetTime extends State<EditSetTime> {
             docId: doc.id,
           );
         }
+
+
+        // await AlarmService.scheduleAlarm(
+        //   id: doc.id.hashCode,
+        //   date: alarmDate,
+        // );
+
       }
 
       await batch.commit();

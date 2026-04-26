@@ -1,3 +1,4 @@
+// import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,8 @@ class _LoginpageState extends State<Loginpage> {
   final authService = AuthService();
 
   bool isLoading = false;
+
+  // 🔹 Bikin fungsi khusus buat minta izin
 
   Future<void> _login() async {
     setState(() => isLoading = true);
@@ -170,11 +173,8 @@ class _LoginpageState extends State<Loginpage> {
     }
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: kPrimaryGreen,
       body: Column(
