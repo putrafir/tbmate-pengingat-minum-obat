@@ -541,23 +541,24 @@ class _JadwalPageState extends State<JadwalPage> {
 
                                 // 3. Fix Logika Tombol Detail
                                 if (isHariIni) {
-                                  if (status == "Sudah diminum") {
+                                  if (status == "Sudah diminum" || status == "Terlewati") {
                                     tombolDisabled = false;
                                     tombolLabel = "Detail";
                                   } else {
-                                    tombolDisabled = !sudahWaktunyaMinum;;
+                                    tombolDisabled = !sudahWaktunyaMinum;
+                                    ;
                                     tombolLabel = "Minum";
                                   }
-                            //       if (status == "Belum diminum") {
-                            //   tombolDisabled = !sudahWaktunyaMinum;
-                            //   tombolLabel = "Minum";
-                            // } else {
-                            //   tombolDisabled = false;
-                            //   tombolLabel = "Detail";
-                            // }
+                                  //       if (status == "Belum diminum") {
+                                  //   tombolDisabled = !sudahWaktunyaMinum;
+                                  //   tombolLabel = "Minum";
+                                  // } else {
+                                  //   tombolDisabled = false;
+                                  //   tombolLabel = "Detail";
+                                  // }
                                 } else {
                                   tombolDisabled =
-                                      true; // Diubah jadi false supaya bisa diklik
+                                      false; // Diubah jadi false supaya bisa diklik
                                   tombolLabel = "Detail";
                                 }
 
@@ -718,6 +719,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                     waktuMinum, // Ini jadwal asli (misal 13:00)
                                                                 'tanggal':
                                                                     tanggal,
+
                                                                 'buktiFoto': data[
                                                                     'bukti_foto'],
                                                                 'verifikasiAi':
@@ -731,6 +733,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                     waktuAktual,
 
                                                                 'riwayat_tunda': data['riwayat_tunda'] ?? [],
+
 
                                                               },
                                                             );
