@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
-import 'package:tbmate_kmipn/pages/jadwal_page.dart';
-import 'package:tbmate_kmipn/pages/riwayat_page.dart';
+
 import 'package:tbmate_kmipn/pmo/pasien_list.dart';
 import 'package:tbmate_kmipn/pmo/pmo_jadwal_page.dart';
 

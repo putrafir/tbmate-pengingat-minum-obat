@@ -21,7 +21,7 @@ import 'package:tbmate_kmipn/main.dart';
 // coba
 final GoRouter appRouter = GoRouter(
     navigatorKey: navigatorKey,
-    initialLocation: '/main-screen',
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',
@@ -139,6 +139,7 @@ final GoRouter appRouter = GoRouter(
             verifikasiAi: data['verifikasiAi'],
             skorAi: data['skorAi']?.toDouble(),
             waktuVerifikasi: data['waktuVerifikasi'],
+            riwayatTunda: data['riwayatTunda'] ?? [],
           );
         },
       ),

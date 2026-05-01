@@ -10,7 +10,7 @@ class EditSetTime extends StatefulWidget {
   final String? docId;
   const EditSetTime({
     super.key,
-     this.docId,
+    this.docId,
   });
 
   @override
@@ -198,12 +198,10 @@ class _EditSetTime extends State<EditSetTime> {
           );
         }
 
-
         // await AlarmService.scheduleAlarm(
         //   id: doc.id.hashCode,
         //   date: alarmDate,
         // );
-
       }
 
       await batch.commit();

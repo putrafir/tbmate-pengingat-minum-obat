@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import 'package:flutter/foundation.dart';
 import 'dart:io';
@@ -266,14 +267,34 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
   }
 
   // 🔹 FUNGSI AJAIB: Mengubah File XFile menjadi Teks Base64
+  // Future<String> _imageToBase64(XFile file) async {
+  //   try {
+  //     final bytes = await File(file.path).readAsBytes();
+  //     String base64String = base64Encode(bytes);
+  //     // Tambahkan header data URI agar nanti gampang ditampilkan di UI (Image.memory)
+  //     return "data:image/jpeg;base64,$base64String";
+  //   } catch (e) {
+  //     debugPrint("Error encoding image: $e");
+  //     return "";
+  //   }
+  // }
+
   Future<String> _imageToBase64(XFile file) async {
     try {
-      final bytes = await File(file.path).readAsBytes();
-      String base64String = base64Encode(bytes);
-      // Tambahkan header data URI agar nanti gampang ditampilkan di UI (Image.memory)
+      final compressedBytes = await FlutterImageCompress.compressWithFile(
+        file.path,
+        minWidth: 300,
+        minHeight: 300,
+        quality: 25, // 🔥 ini kunci (0-100)
+      );
+
+      if (compressedBytes == null) return "";
+
+      String base64String = base64Encode(compressedBytes);
+
       return "data:image/jpeg;base64,$base64String";
     } catch (e) {
-      debugPrint("Error encoding image: $e");
+      debugPrint("Error compressing image: $e");
       return "";
     }
   }

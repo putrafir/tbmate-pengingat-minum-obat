@@ -5,7 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
 import 'package:tbmate_kmipn/pages/jadwal_page.dart';
-import 'package:tbmate_kmipn/pages/riwayat_page.dart';
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

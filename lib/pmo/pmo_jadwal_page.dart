@@ -295,8 +295,6 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                         children: jadwalList.map((jadwal) {
                           final namaObat = jadwal['nama_obat'] ?? '-';
                           final dosis = jadwal['dosis'] ?? '-';
-                          final jumlahTablet =
-                              jadwal['jumlah_tablet']?.toString() ?? '-';
                           final waktuMinum = jadwal['waktu_minum'] ?? '-';
                           final status = jadwal['status'] ?? 'Belum diminum';
                           final fase = jadwal['fase'] ?? '-';

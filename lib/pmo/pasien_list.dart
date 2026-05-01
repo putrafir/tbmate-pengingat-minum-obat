@@ -315,8 +315,7 @@ Future<void> _ensureDoctorPatientsDoc(String doctorId) async {
 
                       final patientDoc = query.docs.first;
                       final patientDocId = patientDoc.id;
-                      final patientData =
-                          patientDoc.data() as Map<String, dynamic>;
+                      final patientData = patientDoc.data();
 
                       // 🔹 Simpan ke daftar pasien milik PMO login (UID)
                       final doctorDoc = FirebaseFirestore.instance
@@ -331,8 +330,7 @@ Future<void> _ensureDoctorPatientsDoc(String doctorId) async {
                             'patients': [patientDocId],
                           });
                         } else {
-                          final data =
-                              snapshot.data() as Map<String, dynamic>? ?? {};
+                          final data = snapshot.data() ?? {};
                           final List<dynamic> patients =
                               List.from(data['patients'] ?? []);
                           if (!patients.contains(patientDocId)) {

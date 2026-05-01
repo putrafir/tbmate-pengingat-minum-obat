@@ -31,7 +31,7 @@ class DetailRiwayat extends StatelessWidget {
     this.verifikasiAi,
     this.skorAi,
     this.waktuVerifikasi,
-    required this.riwayatTunda});
+    required this.riwayatTunda,
   });
 
 
@@ -366,11 +366,11 @@ class DetailRiwayat extends StatelessWidget {
                           ),
                         );
                       }).toList(),
-              )
+            )
             ],
-
           ),
         ),
+      ),
       ),
     );
   }

@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/components/auth-header.dart';
-import 'package:tbmate_kmipn/services/alarm_service.dart';
+
 
 class SetWaktu extends StatefulWidget {
   const SetWaktu({super.key});
@@ -191,7 +191,7 @@ class _SetWaktuState extends State<SetWaktu> {
           minute,
         );
 
-        final docRef = await jadwalCollection.add({
+        await jadwalCollection.add({
           'userId': user.uid,
           'nama_obat': namaObat,
           'fase': 'Intensif',
@@ -238,7 +238,7 @@ class _SetWaktuState extends State<SetWaktu> {
           if (day == 1 || day == 3 || day == 5) {
             final tgl = now.add(Duration(days: 56 + (week * 7) + day));
 
-            final docRef = await jadwalCollection.add({
+            await jadwalCollection.add({
               'userId': user.uid,
               'nama_obat': namaObat,
               'fase': 'Lanjutan',

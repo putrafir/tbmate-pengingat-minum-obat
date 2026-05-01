@@ -34,38 +34,49 @@ class _JadwalPageState extends State<JadwalPage> {
     return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
   }
 
-  // Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user == null) {
-  //     return const Stream.empty();
-  //   }
-
-  //   String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-
-  //   return FirebaseFirestore.instance
-  //       .collection('users')
-  //       .doc(user.uid)
-  //       .collection('jadwal_obat')
-  //       .where('tanggal', isEqualTo: formattedDate)
-  //       .snapshots();
-  // }
-
   Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
-    // 1. Ambil format tanggal hari yang dipilih di kalender atas
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Stream.empty();
+    }
+
     String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
 
-    // 2. 🔹 TRIK BYPASS: Pakai UID asli dari Firestore (Samakan dengan yang di MainScreen!)
-    final user = FirebaseAuth.instance.currentUser;
-    final String targetUid = user?.uid ?? "eRUHhnCwn9TKpSz5HixEKLvrtMf1";
-
-    // 3. Tarik data dari Firebase!
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(targetUid) // 👈 Pastikan pakai targetUid, bukan user.uid
+        .doc(user.uid)
         .collection('jadwal_obat')
-        .where('tanggal', isEqualTo: formattedDate) // 👈 Syarat filter tanggal
+        .where('tanggal', isEqualTo: formattedDate)
         .snapshots();
   }
+
+  Stream<QuerySnapshot> getSemuaJadwal() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('jadwal_obat')
+        .snapshots();
+  }
+
+  // Stream<QuerySnapshot> getJadwalObat(DateTime selectedDate) {
+  //   // 1. Ambil format tanggal hari yang dipilih di kalender atas
+  //   String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+  //   // 2. 🔹 TRIK BYPASS: Pakai UID asli dari Firestore (Samakan dengan yang di MainScreen!)
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   final String targetUid = user?.uid ?? "eRUHhnCwn9TKpSz5HixEKLvrtMf1";
+
+  //   // 3. Tarik data dari Firebase!
+  //   return FirebaseFirestore.instance
+  //       .collection('users')
+  //       .doc(targetUid) // 👈 Pastikan pakai targetUid, bukan user.uid
+  //       .collection('jadwal_obat')
+  //       .where('tanggal', isEqualTo: formattedDate) // 👈 Syarat filter tanggal
+  //       .snapshots();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -199,150 +210,161 @@ class _JadwalPageState extends State<JadwalPage> {
 
                   // =================== WRAPPER STREAM UNTUK RINGKASAN & JADWAL ===================
                   StreamBuilder<QuerySnapshot>(
-                    stream: getJadwalObat(selectedDate),
-                    builder: (context, snapshot) {
+                    stream: getSemuaJadwal(),
+                    builder: (context, snapshotGlobal) {
                       // 1. Hitung Ringkasan Dinamis
-                      int obatDiminum = 0;
-                      int obatDilewati = 0;
-                      List<QueryDocumentSnapshot> jadwalList = [];
+                      Set<String> hariDiminum = {};
+                      Set<String> hariTerlewati = {};
+                      int totalHari = 62; // Asumsi total hari pengobatan, bisa disesuaikan dengan data sebenarnya
 
-                      if (snapshot.hasData) {
-                        jadwalList = snapshot.data!.docs;
-                        for (var doc in jadwalList) {
+                      if (snapshotGlobal.hasData) {
+                        for (var doc in snapshotGlobal.data!.docs) {
                           final data = doc.data() as Map<String, dynamic>;
-                          if (data['status'] == 'Sudah diminum') {
-                            obatDiminum++;
-                          } else if (data['status'] == 'Terlambat') {
-                            obatDilewati++;
+
+                          String status = data['status'] ?? 'Belum diminum';
+                          String tanggal = data['tanggal'];
+
+                          DateTime tglObat = DateFormat('yyyy-MM-dd').parse(tanggal);
+                          DateTime now = DateTime.now();
+                          DateTime todayOnly = DateTime(now.year, now.month, now.day);
+
+                          // 🔥 AUTO STATUS
+                          if (status != "Sudah diminum") {
+                            if (tglObat.isBefore(todayOnly)) {
+                              status = "Terlewati";
+                            }
+                          }
+
+                          // 🔥 HITUNG PER HARI (bukan per obat)
+                          if (status == "Sudah diminum") {
+                            hariDiminum.add(tanggal);
+                          } else if (status == "Terlewati") {
+                            hariTerlewati.add(tanggal);
                           }
                         }
                       }
 
+                      int obatDiminum = hariDiminum.length;
+                      int obatDilewati = hariTerlewati.length;
+
+                      double progress = (obatDiminum / totalHari).clamp(0.0, 1.0);
+                      int sisaHari = totalHari - obatDiminum;
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+
                           // =================== RINGKASAN ===================
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: const EdgeInsets.all(5),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Ringkasan kamu hari ini",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Ringkasan kamu hari ini",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 20,
+                                  backgroundColor: Colors.grey.shade300,
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    Color(0xFF2E7D32),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-                                Stack(
-                                  children: [
-                                    Container(
-                                      height: 25,
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  "Sisa $sisaHari hari lagi",
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFEAE9EE),
-                                        borderRadius: BorderRadius.circular(8),
+                                        color: const Color(0xFFE8F5E9),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                    ),
-                                    const Align(
-                                      alignment: Alignment.centerRight,
-                                      child: Padding(
-                                        padding: EdgeInsets.only(right: 10),
-                                        child: Text(
-                                          "62 hari", // Bisa dibuat dinamis nanti jika ada data durasi total
-                                          style: TextStyle(
-                                            color: Colors.black54,
-                                            fontWeight: FontWeight.w600,
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            "$obatDiminum",
+                                            style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.green,
+                                            ),
                                           ),
-                                        ),
+                                          const SizedBox(height: 4),
+                                          const Text("Diminum"),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        margin: const EdgeInsets.only(right: 5),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFB2DFDB),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              "$obatDiminum",
-                                              style: const TextStyle(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                  ),
+
+                                  const SizedBox(width: 8),
+
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFEBEE),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            "$obatDilewati",
+                                            style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red,
                                             ),
-                                            const SizedBox(height: 4),
-                                            const Text(
-                                              "Diminum",
-                                              style: TextStyle(
-                                                color: Colors.black87,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          const Text("Dilewati"),
+                                        ],
                                       ),
                                     ),
-                                    Expanded(
-                                      child: Container(
-                                        margin: const EdgeInsets.only(left: 5),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F1F1),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              "$obatDilewati",
-                                              style: const TextStyle(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            const Text(
-                                              "Dilewati",
-                                              style: TextStyle(
-                                                color: Colors.black87,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
+                        ),
 
                           const SizedBox(height: 10),
 
                           // =================== KALENDER ===================
                           Container(
                             width: double.infinity,
-                            decoration: BoxDecoration(
+                            decoration: BoxDecoration( 
                               color: Colors.white,
                               border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(10),
@@ -463,118 +485,124 @@ class _JadwalPageState extends State<JadwalPage> {
                           const SizedBox(height: 8),
 
                           // =================== LIST OBAT ===================
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting)
-                            const Center(
-                                child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: CircularProgressIndicator(),
-                            ))
-                          else if (jadwalList.isEmpty)
-                            Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5FBF5),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    "Tidak ada jadwal minum obat di tanggal ini",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+                          StreamBuilder<QuerySnapshot>(
+                            stream: getJadwalObat(selectedDate),
+                            builder: (context, snapshot) {
+
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: CircularProgressIndicator());
+                              }
+
+                              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                                return Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5FBF5),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                  const SizedBox(height: 10),
-                                  Image.asset(
-                                    'assets/images/icontasknull.png',
-                                    height: 200,
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        "Tidak ada jadwal minum obat di tanggal ini",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Image.asset(
+                                        'assets/images/icontasknull.png',
+                                        height: 200,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            )
-                          else
-                            Column(
-                              children: jadwalList.map((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                final namaObat = data['nama_obat'] ?? '-';
-                                final dosis = data['dosis'] ?? '-';
-                                final waktuMinum = data['waktu_minum'] ?? '-';
-                                final status =
-                                    data['status'] ?? 'Belum diminum';
-                                final fase = data['fase'] ?? '-';
-                                final tanggal = data['tanggal'] ??
-                                    DateFormat('yyyy-MM-dd')
-                                        .format(DateTime.now());
+                                );
+                              }
 
-                                DateTime now = DateTime.now();
-                                bool isHariIni = tanggal ==
-                                    DateFormat('yyyy-MM-dd').format(now);
+                              final jadwalList = snapshot.data!.docs;
 
-                                // 2. Fix Parsing Waktu dari Firebase (menggunakan HH:mm)
-                                DateTime waktuObat;
-                                try {
-                                  DateFormat format = DateFormat("HH:mm");
-                                  DateTime parsedTime =
-                                      format.parse(waktuMinum);
+                              return Column(
+                                children: jadwalList.map((doc) {
 
-                                  waktuObat = DateTime(
-                                    now.year,
-                                    now.month,
-                                    now.day,
-                                    parsedTime.hour,
-                                    parsedTime.minute,
-                                  );
-                                } catch (e) {
-                                  waktuObat = now; // Fallback jika format salah
-                                }
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final namaObat = data['nama_obat'] ?? '-';
+                                  final dosis = data['dosis'] ?? '-';
+                                  final waktuMinum = data['waktu_minum'] ?? '-';
+                                  final fase = data['fase'] ?? '-';
+                                  final tanggal = data['tanggal'];
 
-                                bool sudahWaktunyaMinum =
-                                    now.hour > waktuObat.hour ||
-                                        (now.hour == waktuObat.hour &&
-                                            now.minute >= waktuObat.minute);
+                                  String status = data['status'] ?? 'Belum diminum';
 
-                                bool tombolDisabled;
-                                String tombolLabel;
+                                  DateTime now = DateTime.now();
 
-                                // 3. Fix Logika Tombol Detail
-                                if (isHariIni) {
-                                  if (status == "Sudah diminum" || status == "Terlewati") {
+                                  bool isHariIni =
+                                      tanggal == DateFormat('yyyy-MM-dd').format(now);
+
+                                  // parsing waktu
+                                  DateTime waktuObat;
+                                  try {
+                                    DateFormat format = DateFormat("HH:mm");
+                                    DateTime parsedTime = format.parse(waktuMinum);
+
+                                    waktuObat = DateTime(
+                                      now.year,
+                                      now.month,
+                                      now.day,
+                                      parsedTime.hour,
+                                      parsedTime.minute,
+                                    );
+                                  } catch (e) {
+                                    waktuObat = now;
+                                  }
+
+                                  bool sudahWaktunyaMinum =
+                                      now.hour > waktuObat.hour ||
+                                      (now.hour == waktuObat.hour &&
+                                      now.minute >= waktuObat.minute);
+
+                                  bool tombolDisabled;
+                                  String tombolLabel;
+
+                                  // 🔥 LOGIC TOMBOL (INI YANG HILANG)
+                                  if (isHariIni) {
+                                    if (status == "Sudah diminum" || status == "Terlewati") {
+                                      tombolDisabled = false;
+                                      tombolLabel = "Detail";
+                                    } else {
+                                      tombolDisabled = !sudahWaktunyaMinum;
+                                      tombolLabel = "Minum";
+                                    }
+                                  } else {
                                     tombolDisabled = false;
                                     tombolLabel = "Detail";
-                                  } else {
-                                    tombolDisabled = !sudahWaktunyaMinum;
-                                    ;
-                                    tombolLabel = "Minum";
                                   }
-                                  //       if (status == "Belum diminum") {
-                                  //   tombolDisabled = !sudahWaktunyaMinum;
-                                  //   tombolLabel = "Minum";
-                                  // } else {
-                                  //   tombolDisabled = false;
-                                  //   tombolLabel = "Detail";
-                                  // }
-                                } else {
-                                  tombolDisabled =
-                                      false; // Diubah jadi false supaya bisa diklik
-                                  tombolLabel = "Detail";
-                                }
 
-                                Color statusColor;
-                                switch (status) {
-                                  case "Sudah diminum":
-                                    statusColor = Colors.green;
-                                    break;
-                                  case "Terlambat":
-                                    statusColor = Colors.redAccent;
-                                    break;
-                                  default:
-                                    statusColor = Colors.orangeAccent;
-                                }
+                                  DateTime tglObat = DateFormat('yyyy-MM-dd').parse(tanggal);
+                                  DateTime todayOnly = DateTime(now.year, now.month, now.day);
 
-                                return Container(
+                                  // 🔥 AUTO STATUS
+                                  if (status != "Sudah diminum") {
+                                    if (tglObat.isBefore(todayOnly)) {
+                                      status = "Terlewati";
+                                    } else {
+                                      status = "Belum diminum";
+                                    }
+                                  }
+
+                                  Color statusColor;
+                                  switch (status) {
+                                    case "Sudah diminum":
+                                      statusColor = Colors.green;
+                                      break;
+                                    case "Terlewati":
+                                      statusColor = Colors.red;
+                                      break;
+                                    default:
+                                      statusColor = Colors.orange;
+                                  }
+
+                                  return Container(
                                   margin: const EdgeInsets.only(bottom: 10),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
@@ -778,17 +806,18 @@ class _JadwalPageState extends State<JadwalPage> {
                                   ),
                                 );
                               }).toList(),
-                            )
-                        ],
-                      );
-                    },
-                  )
-                ],
-              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          ]
       ),
-    );
+    ));
   }
 }
