@@ -1,5 +1,6 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/main.dart';
 import 'package:tbmate_kmipn/pages/konfirmasi_popup.dart';
 import 'alarm_service.dart';
@@ -42,61 +43,25 @@ class NotificationController {
         "DEBUG: Tombol ditekan -> ${action.buttonKeyPressed} (ID: ${action.id})");
 
     if (action.buttonKeyPressed == 'MINUM') {
-      _isProcessin = true;
-      await AwesomeNotifications().cancel(action.id!);
-      _isProcessin = false;
+      final docId = action.payload?['docId'];
+
+      navigatorKey.currentState?.pushNamed(
+        '/camera',
+        arguments: {
+          'docId': docId,
+        },
+      );
     }
     if (action.buttonKeyPressed == 'SKIP') {
-      _isProcessin = true;
-      // await AwesomeNotifications().cancel(action.id!);
-      final context = navigatorKey.currentContext;
+      final docId = action.payload?['docId'];
 
-      if (context != null) {
-        final docId = action.payload?['docId'];
-        debugPrint("DEBUG DOCID: $docId");
-
-        KonfirmasiPopup.show(
-            context: context,
-            onConfirm: () async {},
-            onAlasan: (alasan) async {
-              await Firebase.initializeApp();
-
-              final user = FirebaseAuth.instance.currentUser;
-              final docId = action.payload?['docId'] ?? "";
-              final id = action.id ?? 0;
-              debugPrint("DEBUG USER: ${user?.uid}");
-              debugPrint("DEBUG ALASAN: $alasan");
-
-              if (user != null && docId != null && docId.isNotEmpty) {
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .collection('jadwal_obat')
-                    .doc(docId)
-                    .update({
-                  "status": "Ditunda",
-                  "riwayat_tunda": FieldValue.arrayUnion([
-                    {
-                      "alasan_tunda": alasan,
-                      "waktu_tunda": Timestamp.now(),
-                    }
-                  ])
-                });
-              }
-              // await AlarmService.repeatSnooze(
-              //   action.id!,
-              //   const Duration(minutes: 1),
-              // );
-              AlarmService.repeatSnooze(
-                id,
-                Duration(minutes: 1),
-                docId,
-              );
-              _isProcessin = false;
-            });
-      } else {
-        _isProcessin = false;
-      }
+      navigatorKey.currentContext?.go(
+        '/main-screen',
+        extra: {
+          'showPopup': true,
+          'docId': docId,
+        },
+      );
     }
     if (action.buttonKeyPressed.isEmpty) {
       print("DEBUG: user mengklik nody notifikasi.");

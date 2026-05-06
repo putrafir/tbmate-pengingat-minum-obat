@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tbmate_kmipn/auth/signup_page.dart';
 import 'package:tbmate_kmipn/auth/login_page.dart';
 import 'package:tbmate_kmipn/pages/beratbadan.dart';
+import 'package:tbmate_kmipn/pages/camera_ingestion_page.dart';
 import 'package:tbmate_kmipn/pages/detail_riwayat.dart';
 import 'package:tbmate_kmipn/pages/input_role.dart';
 import 'package:tbmate_kmipn/pages/inputname.dart';
@@ -18,10 +21,36 @@ import 'package:tbmate_kmipn/pmo/pmo_main_screen.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
 import 'package:tbmate_kmipn/main.dart';
 
+
 // coba
 final GoRouter appRouter = GoRouter(
-    navigatorKey: navigatorKey,
-    initialLocation: '/',
+  navigatorKey: navigatorKey,
+  initialLocation: '/',
+  
+  redirect: (context, state) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // ✅ BIAR SPLASH NGGAK DI-GANGGU
+    if (state.matchedLocation == '/') {
+      return null;
+    }
+
+    final isAuthRoute =
+        state.matchedLocation == '/auth' ||
+        state.matchedLocation == '/login' ||
+        state.matchedLocation == '/signup';
+
+    if (user == null && !isAuthRoute) {
+      return '/auth';
+    }
+
+    if (user != null && isAuthRoute) {
+      return '/main-screen';
+    }
+
+    return null;
+  },
+    
     routes: [
       GoRoute(
         path: '/',
@@ -92,11 +121,17 @@ final GoRouter appRouter = GoRouter(
             return const WeightSelectionScreen();
           }),
       GoRoute(
-          path: '/main-screen',
-          name: 'main-screen',
-          builder: (context, state) {
-            return const MainScreen();
-          }),
+        path: '/main-screen',
+        name: 'main-screen',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+
+          return MainScreen(
+            showPopup: extra?['showPopup'] ?? false,
+            docId: extra?['docId'],
+          );
+        },
+      ),
       GoRoute(
           path: '/pmo-main-screen',
           name: 'pmo-main-screen',
@@ -140,6 +175,21 @@ final GoRouter appRouter = GoRouter(
             skorAi: data['skorAi']?.toDouble(),
             waktuVerifikasi: data['waktuVerifikasi'],
             riwayatTunda: data['riwayatTunda'] ?? [],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/camera',
+        name: 'camera',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return CameraIngestionPage(
+            jadwalDocRef: FirebaseFirestore.instance
+                .collection('users')
+                .doc(FirebaseAuth.instance.currentUser!.uid)
+                .collection('jadwal_obat')
+                .doc(data['docId']),
+            namaObat: 'Obat', // bisa kamu ambil dari firestore nanti
           );
         },
       ),

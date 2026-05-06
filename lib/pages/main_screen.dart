@@ -8,7 +8,14 @@ import 'package:tbmate_kmipn/pages/jadwal_page.dart';
 
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final bool showPopup;
+  final String? docId;
+
+  const MainScreen({
+    super.key,
+    this.showPopup = false,
+    this.docId,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -25,6 +32,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.showPopup) {
+      _selectedIndex = 0; // langsung ke Jadwal tab
+    }
+
     _loadUserData();
   }
 
@@ -131,7 +143,11 @@ class _MainScreenState extends State<MainScreen> {
 
     // 🔹 Di sini kita kirim nickName ke setiap halaman
     final pages = [
-      JadwalPage(nickName: nickName ?? "Pengguna"),
+      JadwalPage(
+        nickName: nickName ?? "Pengguna",
+        showPopup: widget.showPopup,
+        docId: widget.docId,
+      ),
       // RiwayatPage(),
       AkunPage(
         fullName: fullName ?? "Pengguna",

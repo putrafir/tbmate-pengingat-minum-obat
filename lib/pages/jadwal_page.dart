@@ -5,10 +5,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:tbmate_kmipn/pages/camera_ingestion_page.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tbmate_kmipn/pages/konfirmasi_popup.dart';
+import 'package:tbmate_kmipn/services/alarm_service.dart';
 
 class JadwalPage extends StatefulWidget {
   final String nickName;
-  const JadwalPage({super.key, required this.nickName});
+  final bool showPopup;
+  final String? docId;
+
+  const JadwalPage({super.key, required this.nickName, this.showPopup = false,  this.docId});
 
   @override
   State<JadwalPage> createState() => _JadwalPageState();
@@ -17,12 +22,59 @@ class JadwalPage extends StatefulWidget {
 class _JadwalPageState extends State<JadwalPage> {
   DateTime selectedDate = DateTime.now();
   late DateTime _weekAnchor;
+  bool _popupTriggered = false;
 
   @override
   void initState() {
     super.initState();
     _weekAnchor = selectedDate;
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_popupTriggered) return;
+
+    if (widget.showPopup == true && widget.docId != null) {
+      final docId = widget.docId;
+      _popupTriggered = true;
+
+      Future.microtask(() {
+        KonfirmasiPopup.show(
+          context: context,
+          onConfirm: () {},
+          onAlasan: (alasan) async {
+            final user = FirebaseAuth.instance.currentUser;
+
+            if (user != null && docId != null) {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .collection('jadwal_obat')
+                  .doc(docId)
+                  .update({
+                "status": "Ditunda",
+                "riwayat_tunda": FieldValue.arrayUnion([
+                  {
+                    "alasan_tunda": alasan,
+                    "waktu_tunda": Timestamp.now(),
+                  }
+                ])
+              });
+
+              AlarmService.repeatSnooze(
+                DateTime.now().millisecondsSinceEpoch,
+                Duration(minutes: 5),
+                docId,
+              );
+            }
+          },
+        );
+      });
+    }
+  }
+  
 
   // Ambil 7 hari dalam minggu ini (Minggu–Sabtu)
   List<DateTime> getCurrentWeekDays() {
