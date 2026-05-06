@@ -732,6 +732,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                       .format(
                                                                           verifDate);
                                                             }
+                                                            // print("ISI RIWAYAT TUNDA: ${data['riwayat_tunda']}");
 
                                                             context.pushNamed(
                                                               'detail-riwayat',
@@ -760,7 +761,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                 'waktuVerifikasi':
                                                                     waktuAktual,
 
-                                                                'riwayat_tunda': data['riwayat_tunda'] ?? [],
+                                                                'riwayatTunda': data['riwayat_tunda'] ?? [],
 
 
                                                               },

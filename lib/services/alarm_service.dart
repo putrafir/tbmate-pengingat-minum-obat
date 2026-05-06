@@ -59,6 +59,7 @@ class AlarmService {
     required DateTime date,
     required String docId,
   }) async {
+    debugPrint("🔥 CREATE NOTIF → docId: $docId"); // 👈 TAMBAHKAN INI
     if (date.isBefore(DateTime.now())) {
       debugPrint("DEBUG: Gagal menjadwalkan, waktu sudah lewat.");
       return;
@@ -115,6 +116,7 @@ class AlarmService {
 
   static Future<void> repeatSnooze(
       int id, Duration duration, String docId) async {
+        debugPrint("🔥 SNOOZE → docId: $docId"); // 👈 TAMBAHKAN INI
     final userId = FirebaseAuth.instance.currentUser!.uid;
     final doc = await FirebaseFirestore.instance
         .collection('users')
