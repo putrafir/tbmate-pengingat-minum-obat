@@ -203,60 +203,60 @@ class _JadwalPageState extends State<JadwalPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // =================== KOTAK SARAN DOKTER ===================
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F2FD),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.all(5),
-                    child: Row(
-                      children: [
-                        Image.asset('assets/images/icondoctor.png', height: 80),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(left: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Butuh saran dokter?",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                SizedBox(
-                                  height: 32,
-                                  child: ElevatedButton(
-                                    onPressed: null,
-                                    style: ButtonStyle(
-                                      backgroundColor: WidgetStatePropertyAll(
-                                          Color(0xFF2E7D32)),
-                                      foregroundColor:
-                                          WidgetStatePropertyAll(Colors.white),
-                                      shape: WidgetStatePropertyAll(
-                                        RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(8)),
-                                        ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      "Konsultasi Sekarang",
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Container(
+                  //   decoration: BoxDecoration(
+                  //     color: const Color(0xFFE3F2FD),
+                  //     borderRadius: BorderRadius.circular(10),
+                  //   ),
+                  //   padding: const EdgeInsets.all(5),
+                  //   child: Row(
+                  //     children: [
+                  //       Image.asset('assets/images/icondoctor.png', height: 80),
+                  //       const SizedBox(width: 12),
+                  //       const Expanded(
+                  //         child: Padding(
+                  //           padding: EdgeInsets.only(left: 10),
+                  //           child: Column(
+                  //             crossAxisAlignment: CrossAxisAlignment.start,
+                  //             children: [
+                  //               Text(
+                  //                 "Butuh saran dokter?",
+                  //                 style: TextStyle(
+                  //                   fontSize: 16,
+                  //                   fontWeight: FontWeight.bold,
+                  //                   color: Colors.black87,
+                  //                 ),
+                  //               ),
+                  //               SizedBox(height: 8),
+                  //               SizedBox(
+                  //                 height: 32,
+                  //                 child: ElevatedButton(
+                  //                   onPressed: null,
+                  //                   style: ButtonStyle(
+                  //                     backgroundColor: WidgetStatePropertyAll(
+                  //                         Color(0xFF2E7D32)),
+                  //                     foregroundColor:
+                  //                         WidgetStatePropertyAll(Colors.white),
+                  //                     shape: WidgetStatePropertyAll(
+                  //                       RoundedRectangleBorder(
+                  //                         borderRadius: BorderRadius.all(
+                  //                             Radius.circular(8)),
+                  //                       ),
+                  //                     ),
+                  //                   ),
+                  //                   child: Text(
+                  //                     "Konsultasi Sekarang",
+                  //                     style: TextStyle(fontSize: 12),
+                  //                   ),
+                  //                 ),
+                  //               ),
+                  //             ],
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
 
                   const SizedBox(height: 10),
 

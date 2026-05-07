@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tbmate_kmipn/pages/editNohp.dart';
 import 'package:tbmate_kmipn/pages/editnama.dart';
 import 'package:tbmate_kmipn/pages/edit_settime.dart';
+import 'package:tbmate_kmipn/pages/editBB.dart';
 import 'package:go_router/go_router.dart';
 
 class AkunPage extends StatefulWidget {
@@ -147,7 +148,6 @@ class _AkunPageState extends State<AkunPage> {
 
                   _buildListTile(
                     "No. Handphone",
-                    trailingText: "*****46",
                     onTap: () {
                       Navigator.push(
                         context,
@@ -158,13 +158,24 @@ class _AkunPageState extends State<AkunPage> {
                     },
                   ),
 
-                  if (widget.role != 'PMO') _buildListTile("Berat Badan"),
+                  if (widget.role != 'PMO')
+                  _buildListTile(
+                    "Berat Badan",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditBBPage(),
+                        ),
+                      );
+                    },
+                  ),
 
                   const SizedBox(height: 20),
 
                   // 🔹 Notifikasi section
                   _buildSectionTitle("Notifikasi"),
-                  _buildListTile("Nada Dering"),
+                  // _buildListTile("Nada Dering"),
                   _buildListTile(
                     "Set Time Alarm",
                     onTap: () {
@@ -180,19 +191,19 @@ class _AkunPageState extends State<AkunPage> {
                   const SizedBox(height: 20),
 
                   // 🔹 Lainnya section
-                  _buildSectionTitle("Lainnya"),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text("Cadangkan"),
-                    subtitle: const Text("Data dicadangkan secara otomatis"),
-                    value: autoBackup,
-                    onChanged: (value) {
-                      setState(() {
-                        autoBackup = value;
-                      });
-                    },
-                    secondary: const Icon(Icons.cloud_outlined),
-                  ),
+                  // _buildSectionTitle("Lainnya"),
+                  // SwitchListTile(
+                  //   contentPadding: EdgeInsets.zero,
+                  //   title: const Text("Cadangkan"),
+                  //   subtitle: const Text("Data dicadangkan secara otomatis"),
+                  //   value: autoBackup,
+                  //   onChanged: (value) {
+                  //     setState(() {
+                  //       autoBackup = value;
+                  //     });
+                  //   },
+                  //   secondary: const Icon(Icons.cloud_outlined),
+                  // ),
 
                   const SizedBox(height: 25),
 

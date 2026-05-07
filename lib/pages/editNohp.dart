@@ -1,54 +1,171 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-// --- Main Page Widget ---
-class EditPhoneNumberPage extends StatelessWidget {
+class EditPhoneNumberPage extends StatefulWidget {
   const EditPhoneNumberPage({super.key});
+
+  @override
+  State<EditPhoneNumberPage> createState() =>
+      _EditPhoneNumberPageState();
+}
+
+class _EditPhoneNumberPageState
+    extends State<EditPhoneNumberPage> {
+  final TextEditingController _phoneController =
+      TextEditingController();
+
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPhoneNumber();
+  }
+
+  // 🔹 Ambil nomor HP dari Firestore
+  Future<void> _loadPhoneNumber() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users') // sesuaikan dengan firestore kamu
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists) {
+          final data = doc.data();
+
+          if (data != null &&
+              data.containsKey('phoneNumber')) {
+            _phoneController.text =
+                data['phoneNumber'] ?? '';
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error load nomor HP: $e");
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  // 🔹 Simpan nomor HP ke Firestore
+  Future<void> _updatePhoneNumber() async {
+    final phone = _phoneController.text.trim();
+
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Nomor handphone tidak boleh kosong"),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+          'phoneNumber': phone,
+          'updatedAt':
+              FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text("✅ Nomor handphone berhasil diperbarui"),
+            ),
+          );
+
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error update nomor HP: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              "Gagal memperbarui nomor handphone"),
+        ),
+      );
+    }
+
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1. App Bar
+      // 🔹 APP BAR
       appBar: AppBar(
-        // Background color is the green from the image
-        backgroundColor: const Color(0xFF388E3C), // A shade of deep green
+        backgroundColor: const Color(0xFF388E3C),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back,
+              color: Colors.white),
           onPressed: () {
-            // Handle back button press (e.g., Navigator.pop(context))
             Navigator.pop(context);
           },
         ),
         title: const Text(
           'Ganti No. Handphone',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-      // 2. Main Content Area (White/Cream background)
-      body: Container(
-        color: const Color(0xFFF9FFF6), // Very light cream/green tint
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: <Widget>[
-              // Phone Number Input
-              _buildPhoneNumberInput(),
-              const SizedBox(height: 32),
-              // Edit Button
-              _buildEditButton(context),
-            ],
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
- 
+
+      // 🔹 BODY
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Container(
+              color: const Color(0xFFF9FFF6),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: <Widget>[
+                    _buildPhoneNumberInput(),
+                    const SizedBox(height: 32),
+                    _buildEditButton(context),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
-  // --- Widget Builders ---
-
+  // 🔹 INPUT NOMOR HP
   Widget _buildPhoneNumberInput() {
-    // This uses a TextFormField styled to look like the image
     return TextFormField(
-      initialValue: '+62 813 1286 9846', // The example number
+      controller: _phoneController,
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w500,
@@ -56,7 +173,6 @@ class EditPhoneNumberPage extends StatelessWidget {
       ),
       keyboardType: TextInputType.phone,
       decoration: InputDecoration(
-        // The phone icon on the left
         prefixIcon: const Padding(
           padding: EdgeInsets.only(right: 12.0),
           child: Icon(
@@ -65,52 +181,50 @@ class EditPhoneNumberPage extends StatelessWidget {
             size: 24,
           ),
         ),
-        // Removes the default label
-        labelText: null,
         hintText: 'Masukkan nomor handphone baru',
-        // Underscore line style
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.black45, width: 1.5),
+          borderSide:
+              BorderSide(color: Colors.black45, width: 1.5),
         ),
         focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.green.shade700, width: 2.0),
+          borderSide: BorderSide(
+            color: Colors.green.shade700,
+            width: 2.0,
+          ),
         ),
       ),
     );
   }
 
+  // 🔹 BUTTON EDIT
   Widget _buildEditButton(BuildContext context) {
-    // The main blue button
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          // Logic for handling the phone number update
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Mengedit Nomor Handphone...')),
-          );
-        },
+        onPressed:
+            _isSaving ? null : _updatePhoneNumber,
         style: ElevatedButton.styleFrom(
-          // Blue color from the image
-          backgroundColor: const Color(0xFF79D5F0), // A bright sky blue
+          backgroundColor: const Color(0xFF79D5F0),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30), // Rounded corners
+            borderRadius: BorderRadius.circular(30),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          elevation: 0, // Removes shadow for a flat look
+          padding:
+              const EdgeInsets.symmetric(vertical: 16),
+          elevation: 0,
         ),
-        child: const Text(
-          'Edit',
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isSaving
+            ? const CircularProgressIndicator(
+                color: Colors.white,
+              )
+            : const Text(
+                'Edit',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
-
-  
 }
-
