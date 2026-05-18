@@ -7,16 +7,20 @@ import 'package:tbmate_kmipn/pages/editnama.dart';
 import 'package:tbmate_kmipn/pages/edit_settime.dart';
 import 'package:tbmate_kmipn/pages/editBB.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AkunPage extends StatefulWidget {
   final String fullName;
   final String uniqueId;
   final String role;
+  final String? patientUid;
   const AkunPage(
       {super.key,
       required this.fullName,
       required this.uniqueId,
-      required this.role});
+      required this.role,
+      this.patientUid,
+      });
 
   @override
   State<AkunPage> createState() => _AkunPageState();
@@ -140,7 +144,9 @@ class _AkunPageState extends State<AkunPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const EditNamaPage(),
+                          builder: (context) =>  EditNamaPage(
+                            patientUid: widget.patientUid,
+                          ),
                         ),
                       );
                     },
@@ -159,17 +165,17 @@ class _AkunPageState extends State<AkunPage> {
                   ),
 
                   if (widget.role != 'PMO')
-                  _buildListTile(
-                    "Berat Badan",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EditBBPage(),
-                        ),
-                      );
-                    },
-                  ),
+                    _buildListTile(
+                      "Berat Badan",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EditBBPage(),
+                          ),
+                        );
+                      },
+                    ),
 
                   const SizedBox(height: 20),
 
@@ -180,9 +186,9 @@ class _AkunPageState extends State<AkunPage> {
                     "Set Time Alarm",
                     onTap: () {
                       Navigator.push(
-                        context, 
+                        context,
                         MaterialPageRoute(
-                        builder: (context) => const EditSetTime(),
+                          builder: (context) => const EditSetTime(),
                         ),
                       );
                     },
@@ -208,62 +214,104 @@ class _AkunPageState extends State<AkunPage> {
                   const SizedBox(height: 25),
 
                   // 🔹 Tombol Logout
-                  SizedBox(
+                 SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      // onPressed: () async {
-                      //   try {
-                      //     await FirebaseAuth.instance.signOut();
-                      //     await GoogleSignIn().signOut();
+                    child: widget.patientUid != null
+                        ? ElevatedButton.icon(
+                          
+                            onPressed: () async {
+                              try {
+                                final pmoUid =
+                                    FirebaseAuth.instance.currentUser!.uid;
 
-                      //     if (!context.mounted) return;
-                      //     context.go('/auth');
-                      //   } catch (e) {
-                      //     debugPrint('Logout error: $e');
-                      //     if (!context.mounted) return;
+                                await FirebaseFirestore.instance
+                                    .collection('doctorPatients')
+                                    .doc(pmoUid)
+                                    .update({
+                                  'patients':
+                                      FieldValue.arrayRemove([widget.patientUid])
+                                });
 
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //       SnackBar(content: Text('Loug gagal: $e')),
-                      //     );
-                      //   }
-                      // },
-                      onPressed: () async {
-                        try {
-                          final user = FirebaseAuth.instance.currentUser;
+                                if (!context.mounted) return;
 
-                          if (user != null) {
-                            for (final provider in user.providerData) {
-                              if (provider.providerId == 'google.com') {
-                                await GoogleSignIn().signOut();
-                                break;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Pasien berhasil dihapus dari daftar",
+                                    ),
+                                  ),
+                                );
+
+                                context.pop();
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Gagal menghapus pasien: $e",
+                                    ),
+                                  ),
+                                );
                               }
-                            }
-                          }
+                            },
+                            icon: const Icon(Icons.delete),
+                            label: const Text("Hapus Pasien"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          )
+                        : ElevatedButton.icon(
+                            onPressed: () async {
+                              try {
+                                final user =
+                                    FirebaseAuth.instance.currentUser;
 
-                          await FirebaseAuth.instance.signOut();
+                                if (user != null) {
+                                  for (final provider in user.providerData) {
+                                    if (provider.providerId ==
+                                        'google.com') {
+                                      await GoogleSignIn().signOut();
+                                      break;
+                                    }
+                                  }
+                                }
 
-                          if (!context.mounted) return;
-                          context.go('/auth');
-                        } catch (e) {
-                          debugPrint('logout error: $e');
+                                await FirebaseAuth.instance.signOut();
 
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Logout Gagal: $e')),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text("Log Out"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.lightBlueAccent.shade100,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+                                if (!context.mounted) return;
+
+                                context.go('/auth');
+                              } catch (e) {
+                                debugPrint('logout error: $e');
+
+                                if (!context.mounted) return;
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Logout Gagal: $e',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.logout),
+                            label: const Text("Log Out"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Colors.lightBlueAccent.shade100,
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),

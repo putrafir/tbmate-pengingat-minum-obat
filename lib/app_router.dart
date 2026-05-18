@@ -20,6 +20,8 @@ import 'package:tbmate_kmipn/pages/welcome_page.dart';
 import 'package:tbmate_kmipn/pmo/pmo_main_screen.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
 import 'package:tbmate_kmipn/main.dart';
+import 'package:tbmate_kmipn/pmo/tambah_pasien.dart';
+import 'package:tbmate_kmipn/pmo/pasien_data_page.dart';
 
 
 // coba
@@ -112,13 +114,21 @@ final GoRouter appRouter = GoRouter(
           path: '/input-usia',
           name: 'input-usia',
           builder: (context, state) {
-            return const AgeGroupSelectionScreen();
+            final extra = state.extra as Map<String, dynamic>?;
+            return AgeGroupSelectionScreen(
+              patientUid: extra?['patientUid'],
+              isFromPMO: extra?['isFromPMO'] ?? false,
+            );
           }),
       GoRoute(
           path: '/input-weight',
           name: 'input-weight',
           builder: (context, state) {
-            return const WeightSelectionScreen();
+            final extra = state.extra as Map<String, dynamic>?;
+          return WeightSelectionScreen(
+            patientUid: extra?['patientUid'],
+            isFromPMO: extra?['isFromPMO'] ?? false,
+          );
           }),
       GoRoute(
         path: '/main-screen',
@@ -142,7 +152,11 @@ final GoRouter appRouter = GoRouter(
           path: '/set-time',
           name: 'set-time',
           builder: (context, state) {
-            return const SetWaktu();
+           final extra = state.extra as Map<String, dynamic>?;
+          return SetWaktu(
+            patientUid: extra?['patientUid'],
+            isFromPMO: extra?['isFromPMO'] ?? false,
+          );
           }),
       GoRoute(
         path: '/akun',
@@ -153,6 +167,7 @@ final GoRouter appRouter = GoRouter(
             fullName: extra?['fullName'] ?? '',
             uniqueId: extra?['uniqueId'] ?? '',
             role: extra?['role'] ?? '',
+            patientUid: extra?['patientUid'],
           );
         },
       ),
@@ -192,6 +207,11 @@ final GoRouter appRouter = GoRouter(
             namaObat: 'Obat', // bisa kamu ambil dari firestore nanti
           );
         },
+      ),
+      GoRoute(
+        path: '/tambah-pasien-baru',
+        builder: (context, state) =>
+            const CreatePatientAccountPage(),
       ),
     ]);
 

@@ -7,7 +7,14 @@ import 'package:go_router/go_router.dart';
 
 
 class WeightSelectionScreen extends StatefulWidget {
-  const WeightSelectionScreen({super.key});
+   final String? patientUid;
+  final bool isFromPMO;
+
+  const WeightSelectionScreen({
+    super.key,
+    this.patientUid,
+    this.isFromPMO = false,
+  });
 
   @override
   State<WeightSelectionScreen> createState() => _WeightSelectionScreenState();
@@ -68,10 +75,15 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final targetUid =
+    widget.patientUid ??
+    FirebaseAuth.instance.currentUser?.uid;
 
-      if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      if (targetUid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(targetUid)
+            .set({
           'weight': _selectedWeight,
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -82,7 +94,13 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                 content: Text("✅ Berat badan $_selectedWeight kg disimpan")),
           );
 
-         context.go('/set-time');
+         context.push(
+          '/set-time',
+          extra: {
+            'patientUid': widget.patientUid,
+            'isFromPMO': widget.isFromPMO,
+          },
+        );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -146,8 +164,10 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                   height: 220,
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas buatmu",
+                 Text(
+                  widget.isFromPMO
+                    ? "Masukkan berat badan pasien untuk menentukan dosis pengobatan"
+                    : "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas buatmu",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,

@@ -92,7 +92,7 @@ class DetailRiwayat extends StatelessWidget {
   Widget build(BuildContext context) {
     // ================= STATUS DINAMIS =================
     bool isDiminum = status == "Sudah diminum" || status == "Terlambat";
-    bool isDilewati = status == "Dilewati";
+    bool isDilewati = status == "Dilewati" || status == "Terlewati";
 
     Color bgColor;
     String titleText;

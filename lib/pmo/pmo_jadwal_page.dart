@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:async/async.dart'; // Untuk gabung stream
 
 class PmoJadwalPage extends StatefulWidget {
@@ -15,13 +16,25 @@ class PmoJadwalPage extends StatefulWidget {
 
 class _PmoJadwalPageState extends State<PmoJadwalPage> {
   DateTime selectedDate = DateTime.now();
+  late DateTime _weekAnchor;
+
+  @override
+  void initState() {
+    super.initState();
+    _weekAnchor = DateTime.now();
+  }
 
   // Ambil 7 hari dalam minggu ini (Minggu–Sabtu)
   List<DateTime> getCurrentWeekDays() {
-    DateTime now = DateTime.now();
-    int weekday = now.weekday; // Senin = 1, Minggu = 7
-    DateTime startOfWeek = now.subtract(Duration(days: weekday % 7));
+    final DateTime anchor = _weekAnchor;
+    int daysFromSunday = anchor.weekday % 7;
+    DateTime startOfWeek = DateTime(anchor.year, anchor.month, anchor.day)
+        .subtract(Duration(days: daysFromSunday));
+
     return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+    // int weekday = now.weekday; // Senin = 1, Minggu = 7
+    // DateTime startOfWeek = now.subtract(Duration(days: weekday % 7));
+    // return List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
   }
 
   // 🔹 Ambil semua pasien PMO
@@ -174,15 +187,38 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           children: [
                             Text(
                               DateFormat('MMM yyyy', 'id_ID')
-                                  .format(DateTime.now()),
+                                  .format(_weekAnchor),
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.arrow_back_ios, size: 16),
-                                SizedBox(width: 5),
-                                Icon(Icons.arrow_forward_ios, size: 16),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back_ios,
+                                    size: 16,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _weekAnchor = _weekAnchor
+                                          .subtract(const Duration(days: 7));
+                                      selectedDate = _weekAnchor;
+                                    });
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _weekAnchor = _weekAnchor
+                                          .add(const Duration(days: 7));
+                                      selectedDate = _weekAnchor;
+                                    });
+                                  },
+                                )
                               ],
                             )
                           ],
@@ -296,7 +332,7 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           final namaObat = jadwal['nama_obat'] ?? '-';
                           final dosis = jadwal['dosis'] ?? '-';
                           final waktuMinum = jadwal['waktu_minum'] ?? '-';
-                          final status = jadwal['status'] ?? 'Belum diminum';
+                          String status = jadwal['status'] ?? 'Belum diminum';
                           final fase = jadwal['fase'] ?? '-';
                           final tanggal = jadwal['tanggal'] ??
                               DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -306,6 +342,18 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           DateTime now = DateTime.now();
                           bool isHariIni =
                               tanggal == DateFormat('yyyy-MM-dd').format(now);
+                          
+                          DateTime tglObat = DateFormat('yyyy-MM-dd').parse(tanggal);
+                          DateTime todayOnly = DateTime(now.year, now.month, now.day);
+
+                          // AUTO STATUS SAMA SEPERTI PASIEN
+                          if (status != "Sudah diminum") {
+                            if (tglObat.isBefore(todayOnly)) {
+                              status = "Terlewati";
+                            } else {
+                              status = "Belum diminum";
+                            }
+                          }
 
                           // Parsing waktu obat
                           DateTime waktuObat;
@@ -319,28 +367,17 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           }
 
                           bool sudahWaktunyaMinum = now.isAfter(waktuObat);
-                          bool tombolDisabled;
-                          String tombolLabel;
+                          bool tombolDisabled = false;
+                          String tombolLabel = 'Detail';
 
-                          if (isHariIni) {
-                            if (status == "Belum diminum") {
-                              tombolDisabled = !sudahWaktunyaMinum;
-                              tombolLabel = "Minum";
-                            } else {
-                              tombolDisabled = false;
-                              tombolLabel = "Detail";
-                            }
-                          } else {
-                            tombolDisabled = true;
-                            tombolLabel = "Detail";
-                          }
+                    
 
                           Color statusColor;
                           switch (status) {
                             case "Sudah diminum":
                               statusColor = Colors.green;
                               break;
-                            case "Terlambat":
+                            case "Terlewati":
                               statusColor = Colors.redAccent;
                               break;
                             default:
@@ -432,37 +469,38 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                                               ),
                                               const SizedBox(width: 8),
                                               ElevatedButton(
-                                                onPressed: tombolDisabled
-                                                    ? null
-                                                    : () async {
-                                                        if (tombolLabel ==
-                                                            "Minum") {
-                                                          await docRef.update({
-                                                            'status':
-                                                                'Sudah diminum'
-                                                          });
-                                                        } else {
-                                                          showDialog(
-                                                            context: context,
-                                                            builder: (_) =>
-                                                                AlertDialog(
-                                                              title: Text(
-                                                                  "$namaObat ($patientName)"),
-                                                              content: Text(
-                                                                  "Fase: $fase\nDosis: $dosis\nStatus: $status"),
-                                                              actions: [
-                                                                TextButton(
-                                                                  onPressed: () =>
-                                                                      Navigator.pop(
-                                                                          context),
-                                                                  child: const Text(
-                                                                      "Tutup"),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        }
-                                                      },
+                                                onPressed: () {
+                                                String waktuAktual = waktuMinum;
+
+                                                if (jadwal['waktu_verifikasi'] != null) {
+                                                  DateTime verifDate =
+                                                      (jadwal['waktu_verifikasi'] as Timestamp).toDate();
+
+                                                  waktuAktual =
+                                                      DateFormat('HH:mm').format(verifDate);
+                                                }
+
+                                                context.pushNamed(
+                                                  'detail-riwayat',
+                                                  extra: {
+                                                    'namaObat': namaObat,
+                                                    'dosis': dosis,
+                                                    'fase': fase,
+                                                    'status': status,
+                                                    'waktu': waktuMinum,
+                                                    'tanggal': tanggal,
+
+                                                    'buktiFoto': jadwal['bukti_foto'],
+                                                    'verifikasiAi': jadwal['verifikasi_ai'],
+                                                    'skorAi': jadwal['ai_confidence_score'],
+
+                                                    'waktuVerifikasi': waktuAktual,
+
+                                                    'riwayatTunda':
+                                                        jadwal['riwayat_tunda'] ?? [],
+                                                  },
+                                                );
+                                                },
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor:
                                                       tombolDisabled

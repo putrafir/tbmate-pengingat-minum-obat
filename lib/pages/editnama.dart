@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class EditNamaPage extends StatefulWidget {
-  const EditNamaPage({Key? key}) : super(key: key);
+  final String? patientUid;
+
+  const EditNamaPage({super.key, this.patientUid});
 
   @override
   State<EditNamaPage> createState() => _EditNamaPageState();
@@ -20,12 +22,13 @@ class _EditNamaPageState extends State<EditNamaPage> {
   bool _isSaving = false;
 
   Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final targetUid =
+        widget.patientUid ?? FirebaseAuth.instance.currentUser!.uid;
+    // if (user == null) return;
 
     final doc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
+        .doc(targetUid)
         .get();
 
     if (doc.exists) {
@@ -43,8 +46,10 @@ class _EditNamaPageState extends State<EditNamaPage> {
   }
 
   Future<void> _saveName() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final targetUid = widget.patientUid ?? currentUser.uid;
 
     final newFullName = _namaPanjangController.text.trim();
     final newNickName = _namaPanggilanController.text.trim();
@@ -53,14 +58,7 @@ class _EditNamaPageState extends State<EditNamaPage> {
         newFullName != _initialFullName || newNickName != _initialNickName;
 
     if (!isChanged) {
-      context.go(
-        '/akun',
-        extra: {
-          'fullName': _initialFullName,
-          'uniqueId': user.uid,
-          'role': 'pasien',
-        },
-      );
+      Navigator.pop(context);
       return;
     }
 
@@ -69,7 +67,7 @@ class _EditNamaPageState extends State<EditNamaPage> {
     try {
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(targetUid)
           .update({
         'fullName': newFullName,
         'nickName': newNickName,
@@ -85,14 +83,7 @@ class _EditNamaPageState extends State<EditNamaPage> {
         ),
       );
 
-      context.go(
-        '/akun',
-        extra: {
-          'fullName': newFullName,
-          'uniqueId': user.uid,
-          'role': 'pasien',
-        },
-      );
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal Menyimpan: $e')),
