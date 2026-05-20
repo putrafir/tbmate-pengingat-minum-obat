@@ -2,10 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:tbmate_kmipn/pages/editNohp.dart';
-import 'package:tbmate_kmipn/pages/editnama.dart';
-import 'package:tbmate_kmipn/pages/edit_settime.dart';
-import 'package:tbmate_kmipn/pages/editBB.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/editNohp.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/editnama.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/edit_settime.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/editBB.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 

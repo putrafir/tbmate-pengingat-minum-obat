@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tbmate_kmipn/pages/akun_page.dart';
-import 'package:tbmate_kmipn/pmo/pmo_main_screen.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
+import 'package:tbmate_kmipn/pages/pmo/pmo_main_screen.dart';
 
 class PasienList extends StatefulWidget {
   const PasienList({super.key});

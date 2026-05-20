@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tbmate_kmipn/color.dart';
-import 'package:tbmate_kmipn/pages/inputusia.dart';
+import 'package:tbmate_kmipn/pages/registration/inputusia.dart';
 import 'package:go_router/go_router.dart';
 
 

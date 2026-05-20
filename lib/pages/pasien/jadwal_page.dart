@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:tbmate_kmipn/pages/camera_ingestion_page.dart';
+import 'package:tbmate_kmipn/pages/pasien/camera_ingestion_page.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/pages/konfirmasi_popup.dart';
 import 'package:tbmate_kmipn/services/alarm_service.dart';
