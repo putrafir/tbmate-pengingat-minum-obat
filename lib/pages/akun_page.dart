@@ -14,13 +14,13 @@ class AkunPage extends StatefulWidget {
   final String uniqueId;
   final String role;
   final String? patientUid;
-  const AkunPage(
-      {super.key,
-      required this.fullName,
-      required this.uniqueId,
-      required this.role,
-      this.patientUid,
-      });
+  const AkunPage({
+    super.key,
+    required this.fullName,
+    required this.uniqueId,
+    required this.role,
+    this.patientUid,
+  });
 
   @override
   State<AkunPage> createState() => _AkunPageState();
@@ -28,6 +28,14 @@ class AkunPage extends StatefulWidget {
 
 class _AkunPageState extends State<AkunPage> {
   bool autoBackup = true;
+
+  String maskPhoneNumber(String phone) {
+    if (phone.length <= 3) return phone;
+
+    final visible = phone.substring(phone.length - 3);
+    final hidden = '*' * (phone.length);
+    return '$hidden$visible';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +152,7 @@ class _AkunPageState extends State<AkunPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>  EditNamaPage(
+                          builder: (context) => EditNamaPage(
                             patientUid: widget.patientUid,
                           ),
                         ),
@@ -152,19 +160,49 @@ class _AkunPageState extends State<AkunPage> {
                     },
                   ),
 
-                  _buildListTile(
-                    "No. Handphone",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditPhoneNumberPage(
-                            patientUid: widget.patientUid,
-                          ),
-                        ),
+                  // _buildListTile(
+                  //   "No. Handphone",
+                  //   onTap: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => EditPhoneNumberPage(
+                  //           patientUid: widget.patientUid,
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(
+                        widget.patientUid ?? FirebaseAuth.instance.currentUser!.uid,
+                      )
+                      .snapshots(),
+                     builder: (context, snapshot){
+                      String phone = '_';
+
+                      if (snapshot.hasData && snapshot.data!.exists){
+                        final data = snapshot.data!.data() as Map <String, dynamic>;
+
+                        phone = data['phoneNumber'] ?? '_';
+                      }
+                      
+                      return _buildListTile(
+                        "no. Handphone",
+                        trailingText: phone != '_' ? maskPhoneNumber(phone): '_',
+                        onTap: () {
+                          Navigator.push(context,
+                           MaterialPageRoute(
+                            builder:(context) => EditPhoneNumberPage(
+                              patientUid: widget.patientUid,
+                            )
+                            )
+                           );
+                        }, 
                       );
-                    },
-                  ),
+                     }),
 
                   if (widget.role != 'PMO')
                     _buildListTile(
@@ -218,11 +256,10 @@ class _AkunPageState extends State<AkunPage> {
                   const SizedBox(height: 25),
 
                   // 🔹 Tombol Logout
-                 SizedBox(
+                  SizedBox(
                     width: double.infinity,
                     child: widget.patientUid != null
                         ? ElevatedButton.icon(
-                          
                             onPressed: () async {
                               try {
                                 final pmoUid =
@@ -232,8 +269,8 @@ class _AkunPageState extends State<AkunPage> {
                                     .collection('doctorPatients')
                                     .doc(pmoUid)
                                     .update({
-                                  'patients':
-                                      FieldValue.arrayRemove([widget.patientUid])
+                                  'patients': FieldValue.arrayRemove(
+                                      [widget.patientUid])
                                 });
 
                                 if (!context.mounted) return;
@@ -271,13 +308,11 @@ class _AkunPageState extends State<AkunPage> {
                         : ElevatedButton.icon(
                             onPressed: () async {
                               try {
-                                final user =
-                                    FirebaseAuth.instance.currentUser;
+                                final user = FirebaseAuth.instance.currentUser;
 
                                 if (user != null) {
                                   for (final provider in user.providerData) {
-                                    if (provider.providerId ==
-                                        'google.com') {
+                                    if (provider.providerId == 'google.com') {
                                       await GoogleSignIn().signOut();
                                       break;
                                     }
@@ -306,11 +341,9 @@ class _AkunPageState extends State<AkunPage> {
                             icon: const Icon(Icons.logout),
                             label: const Text("Log Out"),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Colors.lightBlueAccent.shade100,
+                              backgroundColor: Colors.lightBlueAccent.shade100,
                               foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
