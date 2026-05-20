@@ -19,7 +19,7 @@ class NotificationController {
   //     await AlarmService.repeat5Minutes(action.id!);
   //   }
   // }
-  static bool _isProcessin = false;
+  static bool _isProcessing = false;
   @pragma("vm:entry-point")
   static Future<void> onNotificationCreatedMethod(
       ReceivedNotification receivedNotification) async {}
@@ -34,7 +34,7 @@ class NotificationController {
 
   @pragma("vm:entry-point")
   static Future<void> onActionReceived(ReceivedAction action) async {
-    if (_isProcessin) {
+    if (_isProcessing) {
       debugPrint("DEBUG: Klik diabaikan karena sedang memproses...");
       return;
     }
@@ -43,30 +43,83 @@ class NotificationController {
         "DEBUG: Tombol ditekan -> ${action.buttonKeyPressed} (ID: ${action.id})");
 
     if (action.buttonKeyPressed == 'MINUM') {
-      final docId = action.payload?['docId'];
+      // final docId = action.payload?['docId'];
 
-      navigatorKey.currentState?.pushNamed(
-        '/camera',
-        arguments: {
-          'docId': docId,
-        },
-      );
+      // navigatorKey.currentState?.pushNamed(
+      //   '/camera',
+      //   arguments: {
+      //     'docId': docId,
+      //   },
+      // );
+      _isProcessing = true;
+      await AwesomeNotifications().cancel(action.id!);
+      _isProcessing = false;
     }
     if (action.buttonKeyPressed == 'SKIP') {
+      _isProcessing = true;
       final docId = action.payload?['docId'];
+      debugPrint("DEBUG: Tombol SKIP ditekan");
+      debugPrint("DEBUG: docId -> $docId");
 
-      navigatorKey.currentContext?.go(
-        '/main-screen',
-        extra: {
-          'showPopup': true,
-          'docId': docId,
-        },
-      );
+      await AwesomeNotifications().cancel(action.id!);
+
+      if (docId != null) {
+        await AlarmService.repeatSnooze(
+          action.id!,
+          const Duration(minutes: 1),
+          docId,
+        );
+      }
+
+      final context = navigatorKey.currentContext;
+
+      if (context != null && docId != null) {
+        KonfirmasiPopup.show(
+          context: context,
+          onConfirm: () async {
+            debugPrint('Debug popup confirm ditutup');
+          },
+          onAlasan: (String alasan) async {
+            debugPrint('Debug: alasn -> $alasan');
+
+            try {
+              final user = FirebaseAuth.instance.currentUser;
+
+              if (user == null) return;
+
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .collection('jadwal_obat')
+                  .doc(docId)
+                  .update({
+                "status": "Ditunda",
+                "riwayat_tunda": FieldValue.arrayUnion([
+                  {
+                    "alasan_tunda": alasan,
+                    "waktu_tunda": Timestamp.now(),
+                  }
+                ])
+              });
+              debugPrint('DEBUG: alasan berhasil disimpan');
+            } catch (e) {
+              debugPrint('DEBUG: gagal simpan alasan ->$e');
+            }
+          },
+        );
+      }
+      _isProcessing = false;
+      // navigatorKey.currentContext?.go(
+      //   '/main-screen',
+      //   extra: {
+      //     'showPopup': true,
+      //     'docId': docId,
+      //   },
+      // );
     }
     if (action.buttonKeyPressed.isEmpty) {
       print("DEBUG: user mengklik nody notifikasi.");
-      _isProcessin = false;
+      _isProcessing = false;
     }
   }
 }
-

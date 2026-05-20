@@ -13,7 +13,8 @@ class JadwalPage extends StatefulWidget {
   final bool showPopup;
   final String? docId;
 
-  const JadwalPage({super.key, required this.nickName, this.showPopup = false,  this.docId});
+  const JadwalPage(
+      {super.key, required this.nickName, this.showPopup = false, this.docId});
 
   @override
   State<JadwalPage> createState() => _JadwalPageState();
@@ -74,7 +75,6 @@ class _JadwalPageState extends State<JadwalPage> {
       });
     }
   }
-  
 
   // Ambil 7 hari dalam minggu ini (Minggu–Sabtu)
   List<DateTime> getCurrentWeekDays() {
@@ -136,11 +136,10 @@ class _JadwalPageState extends State<JadwalPage> {
     DateTime today = DateTime.now();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5FBF5),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        backgroundColor: const Color(0xFFF5FBF5),
+        body: SingleChildScrollView(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // =================== HEADER ===================
             Container(
               width: MediaQuery.of(context).size.width,
@@ -267,7 +266,8 @@ class _JadwalPageState extends State<JadwalPage> {
                       // 1. Hitung Ringkasan Dinamis
                       Set<String> hariDiminum = {};
                       Set<String> hariTerlewati = {};
-                      int totalHari = 62; // Asumsi total hari pengobatan, bisa disesuaikan dengan data sebenarnya
+                      int totalHari =
+                          62; // Asumsi total hari pengobatan, bisa disesuaikan dengan data sebenarnya
 
                       if (snapshotGlobal.hasData) {
                         for (var doc in snapshotGlobal.data!.docs) {
@@ -276,9 +276,11 @@ class _JadwalPageState extends State<JadwalPage> {
                           String status = data['status'] ?? 'Belum diminum';
                           String tanggal = data['tanggal'];
 
-                          DateTime tglObat = DateFormat('yyyy-MM-dd').parse(tanggal);
+                          DateTime tglObat =
+                              DateFormat('yyyy-MM-dd').parse(tanggal);
                           DateTime now = DateTime.now();
-                          DateTime todayOnly = DateTime(now.year, now.month, now.day);
+                          DateTime todayOnly =
+                              DateTime(now.year, now.month, now.day);
 
                           // 🔥 AUTO STATUS
                           if (status != "Sudah diminum") {
@@ -299,124 +301,120 @@ class _JadwalPageState extends State<JadwalPage> {
                       int obatDiminum = hariDiminum.length;
                       int obatDilewati = hariTerlewati.length;
 
-                      double progress = (obatDiminum / totalHari).clamp(0.0, 1.0);
+                      double progress =
+                          (obatDiminum / totalHari).clamp(0.0, 1.0);
                       int sisaHari = totalHari - obatDiminum;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           // =================== RINGKASAN ===================
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Ringkasan kamu hari ini",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: LinearProgressIndicator(
-                                  value: progress,
-                                  minHeight: 20,
-                                  backgroundColor: Colors.grey.shade300,
-                                  valueColor: const AlwaysStoppedAnimation(
-                                    Color(0xFF2E7D32),
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  "Sisa $sisaHari hari lagi",
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Ringkasan kamu hari ini",
                                   style: TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
                                   ),
                                 ),
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE8F5E9),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            "$obatDiminum",
-                                            style: const TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.green,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          const Text("Diminum"),
-                                        ],
-                                      ),
+                                const SizedBox(height: 12),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: LinearProgressIndicator(
+                                    value: progress,
+                                    minHeight: 20,
+                                    backgroundColor: Colors.grey.shade300,
+                                    valueColor: const AlwaysStoppedAnimation(
+                                      Color(0xFF2E7D32),
                                     ),
                                   ),
-
-                                  const SizedBox(width: 8),
-
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFEBEE),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            "$obatDilewati",
-                                            style: const TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.red,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          const Text("Dilewati"),
-                                        ],
-                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    "Sisa $sisaHari hari lagi",
+                                    style: TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ],
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE8F5E9),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              "$obatDiminum",
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text("Diminum"),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFFEBEE),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              "$obatDilewati",
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text("Dilewati"),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
 
                           const SizedBox(height: 10),
 
                           // =================== KALENDER ===================
                           Container(
                             width: double.infinity,
-                            decoration: BoxDecoration( 
+                            decoration: BoxDecoration(
                               color: Colors.white,
                               border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(10),
@@ -540,12 +538,14 @@ class _JadwalPageState extends State<JadwalPage> {
                           StreamBuilder<QuerySnapshot>(
                             stream: getJadwalObat(selectedDate),
                             builder: (context, snapshot) {
-
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(child: CircularProgressIndicator());
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                    child: CircularProgressIndicator());
                               }
 
-                              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                              if (!snapshot.hasData ||
+                                  snapshot.data!.docs.isEmpty) {
                                 return Container(
                                   width: double.infinity,
                                   decoration: BoxDecoration(
@@ -576,26 +576,28 @@ class _JadwalPageState extends State<JadwalPage> {
 
                               return Column(
                                 children: jadwalList.map((doc) {
-
-                                  final data = doc.data() as Map<String, dynamic>;
+                                  final data =
+                                      doc.data() as Map<String, dynamic>;
                                   final namaObat = data['nama_obat'] ?? '-';
                                   final dosis = data['dosis'] ?? '-';
                                   final waktuMinum = data['waktu_minum'] ?? '-';
                                   final fase = data['fase'] ?? '-';
                                   final tanggal = data['tanggal'];
 
-                                  String status = data['status'] ?? 'Belum diminum';
+                                  String status =
+                                      data['status'] ?? 'Belum diminum';
 
                                   DateTime now = DateTime.now();
 
-                                  bool isHariIni =
-                                      tanggal == DateFormat('yyyy-MM-dd').format(now);
+                                  bool isHariIni = tanggal ==
+                                      DateFormat('yyyy-MM-dd').format(now);
 
                                   // parsing waktu
                                   DateTime waktuObat;
                                   try {
                                     DateFormat format = DateFormat("HH:mm");
-                                    DateTime parsedTime = format.parse(waktuMinum);
+                                    DateTime parsedTime =
+                                        format.parse(waktuMinum);
 
                                     waktuObat = DateTime(
                                       now.year,
@@ -610,15 +612,16 @@ class _JadwalPageState extends State<JadwalPage> {
 
                                   bool sudahWaktunyaMinum =
                                       now.hour > waktuObat.hour ||
-                                      (now.hour == waktuObat.hour &&
-                                      now.minute >= waktuObat.minute);
+                                          (now.hour == waktuObat.hour &&
+                                              now.minute >= waktuObat.minute);
 
                                   bool tombolDisabled;
                                   String tombolLabel;
 
                                   // 🔥 LOGIC TOMBOL (INI YANG HILANG)
                                   if (isHariIni) {
-                                    if (status == "Sudah diminum" || status == "Terlewati") {
+                                    if (status == "Sudah diminum" ||
+                                        status == "Terlewati") {
                                       tombolDisabled = false;
                                       tombolLabel = "Detail";
                                     } else {
@@ -630,11 +633,14 @@ class _JadwalPageState extends State<JadwalPage> {
                                     tombolLabel = "Detail";
                                   }
 
-                                  DateTime tglObat = DateFormat('yyyy-MM-dd').parse(tanggal);
-                                  DateTime todayOnly = DateTime(now.year, now.month, now.day);
+                                  DateTime tglObat =
+                                      DateFormat('yyyy-MM-dd').parse(tanggal);
+                                  DateTime todayOnly =
+                                      DateTime(now.year, now.month, now.day);
 
                                   // 🔥 AUTO STATUS
-                                  if (status != "Sudah diminum") {
+                                  if (status != "Sudah diminum" &&
+                                      status != "Ditunda") {
                                     if (tglObat.isBefore(todayOnly)) {
                                       status = "Terlewati";
                                     } else {
@@ -647,230 +653,236 @@ class _JadwalPageState extends State<JadwalPage> {
                                     case "Sudah diminum":
                                       statusColor = Colors.green;
                                       break;
+                                    case "Ditunda":
+                                      statusColor = Colors.orange;
+                                      break;
                                     case "Terlewati":
                                       statusColor = Colors.red;
                                       break;
                                     default:
-                                      statusColor = Colors.orange;
+                                      statusColor = Colors.grey;
                                   }
 
                                   return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border:
-                                        Border.all(color: Colors.grey.shade300),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SvgPicture.asset('assets/icons/obat.svg',
-                                          width: 20, height: 20),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    namaObat,
-                                                    style: const TextStyle(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.grey.shade300),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        SvgPicture.asset(
+                                            'assets/icons/obat.svg',
+                                            width: 20,
+                                            height: 20),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      namaObat,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    status,
+                                                    style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      fontSize: 16,
-                                                      color: Colors.black87,
+                                                      fontSize: 12,
+                                                      color: statusColor,
                                                     ),
                                                   ),
-                                                ),
-                                                Text(
-                                                  status,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
-                                                    color: statusColor,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              dosis,
-                                              style: const TextStyle(
-                                                  color: Colors.black54,
-                                                  fontSize: 13),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              fase,
-                                              style: const TextStyle(
-                                                  color: Colors.black54,
-                                                  fontSize: 13),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    "Pukul $waktuMinum",
-                                                    style: const TextStyle(
-                                                      color: Colors.lightBlue,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                ElevatedButton(
-                                                  onPressed: tombolDisabled
-                                                      ? null
-                                                      : () async {
-                                                          if (tombolLabel ==
-                                                              "Minum") {
-                                                            // 🔹 UBAH BAGIAN INI: Arahkan ke Halaman Kamera AI
-                                                            // Kita kirimkan doc.reference agar halaman kamera bisa
-                                                            // update status setelah AI mendeteksi obat diminum.
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder:
-                                                                    (context) =>
-                                                                        CameraIngestionPage(
-                                                                  jadwalDocRef:
-                                                                      doc.reference,
-                                                                  namaObat:
-                                                                      namaObat,
-                                                                ),
-                                                              ),
-                                                            );
-                                                          } else {
-                                                            final data = doc
-                                                                    .data()
-                                                                as Map<String,
-                                                                    dynamic>;
-
-                                                            // 🔹 TAMBAHAN BARU: Ambil waktu asli dia minum dari Firestore
-                                                            String waktuAktual =
-                                                                waktuMinum; // Default ke jadwal awal
-                                                            if (data[
-                                                                    'waktu_verifikasi'] !=
-                                                                null) {
-                                                              // Ubah format Timestamp dari Firebase jadi teks Jam:Menit
-                                                              DateTime
-                                                                  verifDate =
-                                                                  (data['waktu_verifikasi']
-                                                                          as Timestamp)
-                                                                      .toDate();
-                                                              waktuAktual =
-                                                                  DateFormat(
-                                                                          'HH:mm')
-                                                                      .format(
-                                                                          verifDate);
-                                                            }
-                                                            // print("ISI RIWAYAT TUNDA: ${data['riwayat_tunda']}");
-
-                                                            context.pushNamed(
-                                                              'detail-riwayat',
-                                                              extra: {
-                                                                'namaObat':
-                                                                    namaObat,
-                                                                'dosis': dosis,
-                                                                'fase': fase,
-                                                                'status':
-                                                                    status,
-                                                                'waktu':
-
-                                                                    waktuMinum, // Ini jadwal asli (misal 13:00)
-                                                                'tanggal':
-                                                                    tanggal,
-
-                                                                'buktiFoto': data[
-                                                                    'bukti_foto'],
-                                                                'verifikasiAi':
-                                                                    data[
-                                                                        'verifikasi_ai'],
-                                                                'skorAi': data[
-                                                                    'ai_confidence_score'],
-
-                                                                // 🔹 KIRIM WAKTU AKTUAL KE ROUTER
-                                                                'waktuVerifikasi':
-                                                                    waktuAktual,
-
-                                                                'riwayatTunda': data['riwayat_tunda'] ?? [],
-
-
-                                                              },
-                                                            );
-                                                          }
-                                                        },
-                                                  style:
-                                                      ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        tombolDisabled
-                                                            ? Colors
-                                                                .grey.shade300
-                                                            : (tombolLabel ==
-                                                                    "Detail"
-                                                                ? Colors.green
-                                                                    .shade100
-                                                                : const Color(
-                                                                    0xFFB3E5FC)),
-                                                    foregroundColor:
-                                                        Colors.black,
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    minimumSize:
-                                                        const Size(80, 36),
-                                                  ),
-                                                  child: Text(
-                                                    tombolLabel,
-                                                    style: const TextStyle(
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                dosis,
+                                                style: const TextStyle(
+                                                    color: Colors.black54,
+                                                    fontSize: 13),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                fase,
+                                                style: const TextStyle(
+                                                    color: Colors.black54,
+                                                    fontSize: 13),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      "Pukul $waktuMinum",
+                                                      style: const TextStyle(
+                                                        color: Colors.lightBlue,
                                                         fontWeight:
-                                                            FontWeight.w600),
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                                  const SizedBox(width: 8),
+                                                  ElevatedButton(
+                                                    onPressed: tombolDisabled
+                                                        ? null
+                                                        : () async {
+                                                            if (tombolLabel ==
+                                                                "Minum") {
+                                                              // 🔹 UBAH BAGIAN INI: Arahkan ke Halaman Kamera AI
+                                                              // Kita kirimkan doc.reference agar halaman kamera bisa
+                                                              // update status setelah AI mendeteksi obat diminum.
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder:
+                                                                      (context) =>
+                                                                          CameraIngestionPage(
+                                                                    jadwalDocRef:
+                                                                        doc.reference,
+                                                                    namaObat:
+                                                                        namaObat,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            } else {
+                                                              final data = doc
+                                                                      .data()
+                                                                  as Map<String,
+                                                                      dynamic>;
+
+                                                              // 🔹 TAMBAHAN BARU: Ambil waktu asli dia minum dari Firestore
+                                                              String
+                                                                  waktuAktual =
+                                                                  waktuMinum; // Default ke jadwal awal
+                                                              if (data[
+                                                                      'waktu_verifikasi'] !=
+                                                                  null) {
+                                                                // Ubah format Timestamp dari Firebase jadi teks Jam:Menit
+                                                                DateTime
+                                                                    verifDate =
+                                                                    (data['waktu_verifikasi']
+                                                                            as Timestamp)
+                                                                        .toDate();
+                                                                waktuAktual =
+                                                                    DateFormat(
+                                                                            'HH:mm')
+                                                                        .format(
+                                                                            verifDate);
+                                                              }
+                                                              // print("ISI RIWAYAT TUNDA: ${data['riwayat_tunda']}");
+
+                                                              context.pushNamed(
+                                                                'detail-riwayat',
+                                                                extra: {
+                                                                  'namaObat':
+                                                                      namaObat,
+                                                                  'dosis':
+                                                                      dosis,
+                                                                  'fase': fase,
+                                                                  'status':
+                                                                      status,
+                                                                  'waktu':
+                                                                      waktuMinum, // Ini jadwal asli (misal 13:00)
+                                                                  'tanggal':
+                                                                      tanggal,
+
+                                                                  'buktiFoto': data[
+                                                                      'bukti_foto'],
+                                                                  'verifikasiAi':
+                                                                      data[
+                                                                          'verifikasi_ai'],
+                                                                  'skorAi': data[
+                                                                      'ai_confidence_score'],
+
+                                                                  // 🔹 KIRIM WAKTU AKTUAL KE ROUTER
+                                                                  'waktuVerifikasi':
+                                                                      waktuAktual,
+
+                                                                  'riwayatTunda':
+                                                                      data['riwayat_tunda'] ??
+                                                                          [],
+                                                                },
+                                                              );
+                                                            }
+                                                          },
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          tombolDisabled
+                                                              ? Colors
+                                                                  .grey.shade300
+                                                              : (tombolLabel ==
+                                                                      "Detail"
+                                                                  ? Colors.green
+                                                                      .shade100
+                                                                  : const Color(
+                                                                      0xFFB3E5FC)),
+                                                      foregroundColor:
+                                                          Colors.black,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                      ),
+                                                      minimumSize:
+                                                          const Size(80, 36),
+                                                    ),
+                                                    child: Text(
+                                                      tombolLabel,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-          ]
-      ),
-    ));
+          ]),
+        ));
   }
 }
