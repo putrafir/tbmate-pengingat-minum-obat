@@ -173,31 +173,22 @@ class _PasienListState extends State<PasienList> {
                           ),
                           trailing:
                               const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            // context.push(
-                            //   '/akun',
-                            //   extra: {
-                            //     'fullName': fullName,
-                            //     'uniqueId': data['uniqueId'] ?? '',
-                            //     'role': data['role'] ?? '',
-                            //      'patientUid': patient.id,
-                            //   },
-                            // );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PmoMainScreen(
-                                  initialIndex: 1,
-                                  customPage: AkunPage(
-                                    fullName: fullName,
-                                    uniqueId: data['uniqueId'] ?? '',
-                                    role: data['role'] ?? '',
-                                    patientUid: patient.id,
-                                  ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PmoMainScreen(
+                                initialIndex: 1,
+                                customPage: AkunPage(
+                                  fullName: fullName,
+                                  uniqueId: data['uniqueId'] ?? '',
+                                  role: data['role'] ?? '',
+                                  patientUid: patient.id,
                                 ),
                               ),
-                            );
-                          },
+                            ),
+                          );
+                        },
                         ),
                       );
                     },
@@ -270,142 +261,7 @@ class _PasienListState extends State<PasienList> {
     );
   }
 
-  /// 🔹 Dialog untuk menambah pasien manual lewat uniqueId
-  // void _showAddPatientDialog(BuildContext context) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       String uniqueId = '';
-  //       bool isExisting = false;
-
-  //       return StatefulBuilder(
-  //         builder: (context, setState) {
-  //           return AlertDialog(
-  //             title: const Text("Tambah Pasien"),
-  //             content: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               children: [
-  //                 const Text("Apakah pasien sudah terdaftar di aplikasi?"),
-  //                 const SizedBox(height: 10),
-  //                 Row(
-  //                   children: [
-  //                     Expanded(
-  //                       child: ElevatedButton(
-  //                         onPressed: () {
-  //                           setState(() => isExisting = true);
-  //                         },
-  //                         style: ElevatedButton.styleFrom(
-  //                           backgroundColor: isExisting
-  //                               ? const Color(0xFF2E7D32)
-  //                               : Colors.grey.shade300,
-  //                         ),
-  //                         child: const Text("Sudah Terdaftar"),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(width: 10),
-  //                     Expanded(
-  //                       child: ElevatedButton(
-  //                         onPressed: () {
-  //                           Navigator.pop(context);
-  //                           context.push('/tambah-pasien-baru');
-  //                         },
-  //                         style: ElevatedButton.styleFrom(
-  //                           backgroundColor: const Color(0xFF81D4FA),
-  //                         ),
-  //                         child: const Text("Belum Terdaftar"),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //                 if (isExisting) ...[
-  //                   const SizedBox(height: 20),
-  //                   TextField(
-  //                     onChanged: (val) => uniqueId = val.trim(),
-  //                     decoration: const InputDecoration(
-  //                       labelText: 'Masukkan ID Pasien (uniqueId)',
-  //                       border: OutlineInputBorder(),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ],
-  //             ),
-  //             actions: [
-  //               TextButton(
-  //                 onPressed: () => Navigator.pop(context),
-  //                 child: const Text("Batal"),
-  //               ),
-  //               if (isExisting)
-  //                 ElevatedButton(
-  //                   onPressed: () async {
-  //                     if (uniqueId.isEmpty) return;
-
-  //                     // 🔍 Cari pasien berdasarkan uniqueId
-  //                     final query = await FirebaseFirestore.instance
-  //                         .collection('users')
-  //                         .where('uniqueId', isEqualTo: uniqueId)
-  //                         .limit(1)
-  //                         .get();
-
-  //                     if (query.docs.isEmpty) {
-  //                       ScaffoldMessenger.of(context).showSnackBar(
-  //                         const SnackBar(
-  //                           content: Text("ID Pasien tidak ditemukan."),
-  //                         ),
-  //                       );
-  //                       return;
-  //                     }
-
-  //                     final patientDoc = query.docs.first;
-  //                     final patientDocId = patientDoc.id;
-  //                     final patientData = patientDoc.data();
-
-  //                     // 🔹 Simpan ke daftar pasien milik PMO login (UID)
-  //                     final doctorDoc = FirebaseFirestore.instance
-  //                         .collection('doctorPatients')
-  //                         .doc(currentDoctorId);
-
-  //                     await FirebaseFirestore.instance
-  //                         .runTransaction((transaction) async {
-  //                       final snapshot = await transaction.get(doctorDoc);
-  //                       if (!snapshot.exists) {
-  //                         transaction.set(doctorDoc, {
-  //                           'patients': [patientDocId],
-  //                         });
-  //                       } else {
-  //                         final data = snapshot.data() ?? {};
-  //                         final List<dynamic> patients =
-  //                             List.from(data['patients'] ?? []);
-  //                         if (!patients.contains(patientDocId)) {
-  //                           patients.add(patientDocId);
-  //                           transaction
-  //                               .update(doctorDoc, {'patients': patients});
-  //                         }
-  //                       }
-  //                     });
-
-  //                     ScaffoldMessenger.of(context).showSnackBar(
-  //                       SnackBar(
-  //                         content: Text(
-  //                           "Pasien ${patientData['fullName']} berhasil ditambahkan.",
-  //                         ),
-  //                       ),
-  //                     );
-
-  //                     Navigator.pop(context);
-  //                   },
-  //                   style: ElevatedButton.styleFrom(
-  //                     backgroundColor: const Color(0xFF2E7D32),
-  //                   ),
-  //                   child: const Text("Simpan"),
-  //                 ),
-  //             ],
-  //           );
-  //         },
-  //       );
-  //     },
-  //   );
-  // }
-
+ 
   /// 🔹 Dialog Modern Tambah Pasien
   void _showAddPatientDialog(BuildContext context) {
     showGeneralDialog(

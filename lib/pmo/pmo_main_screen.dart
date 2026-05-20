@@ -44,6 +44,11 @@ class _MainScreenState extends State<PmoMainScreen> {
   // ];
 
   void _onItemTapped(int index) {
+    if (widget.customPage != null && index == 1) {
+      Navigator.pop(context);
+      return;
+    }
+    
     setState(() {
       _selectedIndex = index;
     });
@@ -96,8 +101,9 @@ class _MainScreenState extends State<PmoMainScreen> {
     // 🔹 Di sini kita kirim nickName ke setiap halaman
     final pages = [
       PmoJadwalPage(nickName: nickName ?? "Pengguna"),
-      
-      widget.customPage ?? PasienList(),
+      widget.customPage ?? const PasienList(),
+
+      // const PasienList(),
       AkunPage(
         fullName: fullName ?? "Pengguna",
         uniqueId: uniqueId!,

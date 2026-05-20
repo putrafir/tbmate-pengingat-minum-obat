@@ -21,7 +21,7 @@ import 'package:tbmate_kmipn/pmo/pmo_main_screen.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
 import 'package:tbmate_kmipn/main.dart';
 import 'package:tbmate_kmipn/pmo/tambah_pasien.dart';
-import 'package:tbmate_kmipn/pmo/pasien_data_page.dart';
+
 
 
 // coba

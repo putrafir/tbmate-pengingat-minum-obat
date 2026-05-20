@@ -24,6 +24,15 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
     _weekAnchor = DateTime.now();
   }
 
+  Stream<DocumentSnapshot> getCurrentUserStream() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .snapshots();
+  }
+
   // Ambil 7 hari dalam minggu ini (Minggu–Sabtu)
   List<DateTime> getCurrentWeekDays() {
     final DateTime anchor = _weekAnchor;
@@ -140,14 +149,46 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Hai ${widget.nickName}!",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          // Text(
+                          //   "Hai ${widget.nickName}!",
+                          //   style: const TextStyle(
+                          //     color: Colors.white,
+                          //     fontSize: 20,
+                          //     fontWeight: FontWeight.bold,
+                          //   ),
+                          // ),
+                          StreamBuilder<DocumentSnapshot>(
+                          stream: getCurrentUserStream(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return const Text(
+                                "Hai...",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            }
+
+                            final data =
+                                snapshot.data!.data() as Map<String, dynamic>?;
+
+                            final nickName =
+                                data?['nickName'] ??
+                                data?['fullName'] ??
+                                'PMO';
+
+                            return Text(
+                              "Hai $nickName!",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        ),
                           const Text(
                             "Pastikan Pasien Kamu Sudah Minum Obat Hari Ini Ya!",
                             style: TextStyle(
@@ -342,9 +383,11 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           DateTime now = DateTime.now();
                           bool isHariIni =
                               tanggal == DateFormat('yyyy-MM-dd').format(now);
-                          
-                          DateTime tglObat = DateFormat('yyyy-MM-dd').parse(tanggal);
-                          DateTime todayOnly = DateTime(now.year, now.month, now.day);
+
+                          DateTime tglObat =
+                              DateFormat('yyyy-MM-dd').parse(tanggal);
+                          DateTime todayOnly =
+                              DateTime(now.year, now.month, now.day);
 
                           // AUTO STATUS SAMA SEPERTI PASIEN
                           if (status != "Sudah diminum") {
@@ -369,8 +412,6 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           bool sudahWaktunyaMinum = now.isAfter(waktuObat);
                           bool tombolDisabled = false;
                           String tombolLabel = 'Detail';
-
-                    
 
                           Color statusColor;
                           switch (status) {
@@ -470,36 +511,44 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                                               const SizedBox(width: 8),
                                               ElevatedButton(
                                                 onPressed: () {
-                                                String waktuAktual = waktuMinum;
+                                                  String waktuAktual =
+                                                      waktuMinum;
 
-                                                if (jadwal['waktu_verifikasi'] != null) {
-                                                  DateTime verifDate =
-                                                      (jadwal['waktu_verifikasi'] as Timestamp).toDate();
+                                                  if (jadwal[
+                                                          'waktu_verifikasi'] !=
+                                                      null) {
+                                                    DateTime verifDate =
+                                                        (jadwal['waktu_verifikasi']
+                                                                as Timestamp)
+                                                            .toDate();
 
-                                                  waktuAktual =
-                                                      DateFormat('HH:mm').format(verifDate);
-                                                }
+                                                    waktuAktual =
+                                                        DateFormat('HH:mm')
+                                                            .format(verifDate);
+                                                  }
 
-                                                context.pushNamed(
-                                                  'detail-riwayat',
-                                                  extra: {
-                                                    'namaObat': namaObat,
-                                                    'dosis': dosis,
-                                                    'fase': fase,
-                                                    'status': status,
-                                                    'waktu': waktuMinum,
-                                                    'tanggal': tanggal,
-
-                                                    'buktiFoto': jadwal['bukti_foto'],
-                                                    'verifikasiAi': jadwal['verifikasi_ai'],
-                                                    'skorAi': jadwal['ai_confidence_score'],
-
-                                                    'waktuVerifikasi': waktuAktual,
-
-                                                    'riwayatTunda':
-                                                        jadwal['riwayat_tunda'] ?? [],
-                                                  },
-                                                );
+                                                  context.pushNamed(
+                                                    'detail-riwayat',
+                                                    extra: {
+                                                      'namaObat': namaObat,
+                                                      'dosis': dosis,
+                                                      'fase': fase,
+                                                      'status': status,
+                                                      'waktu': waktuMinum,
+                                                      'tanggal': tanggal,
+                                                      'buktiFoto':
+                                                          jadwal['bukti_foto'],
+                                                      'verifikasiAi': jadwal[
+                                                          'verifikasi_ai'],
+                                                      'skorAi': jadwal[
+                                                          'ai_confidence_score'],
+                                                      'waktuVerifikasi':
+                                                          waktuAktual,
+                                                      'riwayatTunda': jadwal[
+                                                              'riwayat_tunda'] ??
+                                                          [],
+                                                    },
+                                                  );
                                                 },
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor:

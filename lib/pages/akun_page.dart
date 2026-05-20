@@ -158,7 +158,9 @@ class _AkunPageState extends State<AkunPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const EditPhoneNumberPage(),
+                          builder: (context) => EditPhoneNumberPage(
+                            patientUid: widget.patientUid,
+                          ),
                         ),
                       );
                     },
@@ -171,7 +173,9 @@ class _AkunPageState extends State<AkunPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const EditBBPage(),
+                            builder: (context) => EditBBPage(
+                              patientUid: widget.patientUid,
+                            ),
                           ),
                         );
                       },

@@ -1,19 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:tbmate_kmipn/main.dart';
 
 class EditPhoneNumberPage extends StatefulWidget {
-  const EditPhoneNumberPage({super.key});
+  final String? patientUid;
+  const EditPhoneNumberPage({
+    super.key,
+    this.patientUid,
+  });
 
   @override
-  State<EditPhoneNumberPage> createState() =>
-      _EditPhoneNumberPageState();
+  State<EditPhoneNumberPage> createState() => _EditPhoneNumberPageState();
 }
 
-class _EditPhoneNumberPageState
-    extends State<EditPhoneNumberPage> {
-  final TextEditingController _phoneController =
-      TextEditingController();
+class _EditPhoneNumberPageState extends State<EditPhoneNumberPage> {
+  final TextEditingController _phoneController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -27,22 +29,19 @@ class _EditPhoneNumberPageState
   // 🔹 Ambil nomor HP dari Firestore
   Future<void> _loadPhoneNumber() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final curretUser = FirebaseAuth.instance.currentUser;
+      String targetUid = widget.patientUid ?? curretUser!.uid;
 
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users') // sesuaikan dengan firestore kamu
-            .doc(user.uid)
-            .get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUid)
+          .get();
 
-        if (doc.exists) {
-          final data = doc.data();
+      if (doc.exists) {
+        final data = doc.data();
 
-          if (data != null &&
-              data.containsKey('phoneNumber')) {
-            _phoneController.text =
-                data['phoneNumber'] ?? '';
-          }
+        if (data != null && data.containsKey('phoneNumber')) {
+          _phoneController.text = data['phoneNumber'] ?? '';
         }
       }
     } catch (e) {
@@ -72,36 +71,30 @@ class _EditPhoneNumberPageState
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final currentUser = FirebaseAuth.instance.currentUser;
 
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
-          'phoneNumber': phone,
-          'updatedAt':
-              FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+      String targetUid = widget.patientUid ?? currentUser!.uid;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:
-                  Text("✅ Nomor handphone berhasil diperbarui"),
+      await FirebaseFirestore.instance.collection('users').doc(targetUid).set({
+        'phoneNumber': phone,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ Nomor handphone berhasil diperbarui',
             ),
-          );
-
-          Navigator.pop(context);
-        }
+          ),
+        );
+        Navigator.pop(context);
       }
     } catch (e) {
       debugPrint("Error update nomor HP: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              "Gagal memperbarui nomor handphone"),
+       const SnackBar(
+          content: Text("Gagal memperbarui nomor handphone"),
         ),
       );
     }
@@ -126,8 +119,7 @@ class _EditPhoneNumberPageState
       appBar: AppBar(
         backgroundColor: const Color(0xFF388E3C),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -183,8 +175,7 @@ class _EditPhoneNumberPageState
         ),
         hintText: 'Masukkan nomor handphone baru',
         enabledBorder: const UnderlineInputBorder(
-          borderSide:
-              BorderSide(color: Colors.black45, width: 1.5),
+          borderSide: BorderSide(color: Colors.black45, width: 1.5),
         ),
         focusedBorder: UnderlineInputBorder(
           borderSide: BorderSide(
@@ -201,15 +192,13 @@ class _EditPhoneNumberPageState
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed:
-            _isSaving ? null : _updatePhoneNumber,
+        onPressed: _isSaving ? null : _updatePhoneNumber,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF79D5F0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
-          padding:
-              const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 0,
         ),
         child: _isSaving

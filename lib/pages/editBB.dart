@@ -3,7 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class EditBBPage extends StatefulWidget {
-  const EditBBPage({super.key});
+  final String? patientUid;
+
+  const EditBBPage({
+    super.key,
+    this.patientUid,
+  });
 
   @override
   State<EditBBPage> createState() => _EditBBPageState();
@@ -30,26 +35,22 @@ class _EditBBPageState extends State<EditBBPage> {
 
   Future<void> _loadWeight() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final currentUser = FirebaseAuth.instance.currentUser;
+      String targetUid = widget.patientUid ?? currentUser!.uid;
 
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUid)
+          .get();
 
-        if (doc.exists && doc.data()!.containsKey('weight')) {
-          _selectedWeight = doc['weight'];
-        }
-
-        final initialOffset = (_selectedWeight - minWeight) * 40.0;
-
-        _scrollController = ScrollController(
-          initialScrollOffset: initialOffset,
-        );
-
-        _scrollController.addListener(_onScroll);
+      if (doc.exists && doc.data()!.containsKey('weight')) {
+        _selectedWeight = doc['weight'];
       }
+
+      final initialOffset = (_selectedWeight - minWeight) * 40.0;
+      _scrollController = ScrollController(
+        initialScrollOffset: initialOffset,
+      );
     } catch (e) {
       debugPrint("Error load weight: $e");
     }
@@ -62,8 +63,7 @@ class _EditBBPageState extends State<EditBBPage> {
   void _onScroll() {
     const double itemHeight = 40.0;
 
-    final int middleIndex =
-        (_scrollController.offset / itemHeight).round();
+    final int middleIndex = (_scrollController.offset / itemHeight).round();
 
     final newWeight = minWeight + middleIndex + 2;
 
@@ -84,8 +84,7 @@ class _EditBBPageState extends State<EditBBPage> {
         duration: const Duration(milliseconds: 200),
         style: TextStyle(
           fontSize: isSelected ? 24 : 18,
-          fontWeight:
-              isSelected ? FontWeight.bold : FontWeight.normal,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           color: isSelected ? Colors.white : Colors.black54,
         ),
         child: Text(weight.toString()),
@@ -99,28 +98,27 @@ class _EditBBPageState extends State<EditBBPage> {
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final currentUser = FirebaseAuth.instance.currentUser;
 
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({
-          'weight': _selectedWeight,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      String targetUid = widget.patientUid ?? currentUser!.uid;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "✅ Berat badan berhasil diubah menjadi $_selectedWeight kg",
-              ),
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUid)
+          .update({
+        'weight': _selectedWeight,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "✅ Berat badan berhasil diubah menjadi $_selectedWeight kg",
             ),
-          );
-
-          Navigator.pop(context);
-        }
+          ),
+        );
+        Navigator.pop(context);
       }
     } catch (e) {
       debugPrint("Error update weight: $e");
@@ -153,8 +151,7 @@ class _EditBBPageState extends State<EditBBPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF388E3C),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -191,8 +188,7 @@ class _EditBBPageState extends State<EditBBPage> {
                     height: 220,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: const Color(0xFFA6D9E8),
                         width: 2,
@@ -201,36 +197,25 @@ class _EditBBPageState extends State<EditBBPage> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        NotificationListener<
-                            ScrollEndNotification>(
+                        NotificationListener<ScrollEndNotification>(
                           onNotification: (notification) {
-                            if (notification.metrics.axis ==
-                                Axis.vertical) {
+                            if (notification.metrics.axis == Axis.vertical) {
                               const itemHeight = 40.0;
 
-                              final offset =
-                                  notification.metrics.pixels;
+                              final offset = notification.metrics.pixels;
 
-                              final int index =
-                                  (offset / itemHeight)
-                                      .round();
+                              final int index = (offset / itemHeight).round();
 
-                              final double targetOffset =
-                                  index * itemHeight;
+                              final double targetOffset = index * itemHeight;
 
                               _scrollController.animateTo(
                                 targetOffset,
-                                duration:
-                                    const Duration(
-                                        milliseconds: 200),
+                                duration: const Duration(milliseconds: 200),
                                 curve: Curves.easeOut,
                               );
 
                               setState(() {
-                                _selectedWeight =
-                                    minWeight +
-                                        index +
-                                        2;
+                                _selectedWeight = minWeight + index + 2;
                               });
                             }
 
@@ -240,23 +225,17 @@ class _EditBBPageState extends State<EditBBPage> {
                             controller: _scrollController,
                             itemCount: itemCount,
                             itemExtent: 40.0,
-                            physics:
-                                const BouncingScrollPhysics(),
-                            itemBuilder:
-                                (context, index) {
-                              if (index < 2 ||
-                                  index >=
-                                      itemCount - 2) {
+                            physics: const BouncingScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              if (index < 2 || index >= itemCount - 2) {
                                 return const SizedBox(
                                   height: 40,
                                 );
                               }
 
-                              final weight =
-                                  minWeight + index - 2;
+                              final weight = minWeight + index - 2;
 
-                              return _buildWeightItem(
-                                  weight);
+                              return _buildWeightItem(weight);
                             },
                           ),
                         ),
@@ -268,25 +247,18 @@ class _EditBBPageState extends State<EditBBPage> {
                           child: Container(
                             height: 55,
                             decoration: BoxDecoration(
-                              color:
-                                  const Color(0xFF388E3C),
-                              borderRadius:
-                                  BorderRadius.circular(
-                                      12),
+                              color: const Color(0xFF388E3C),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
                             child: Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  _selectedWeight
-                                      .toString(),
-                                  style:
-                                      const TextStyle(
+                                  _selectedWeight.toString(),
+                                  style: const TextStyle(
                                     fontSize: 24,
-                                    fontWeight:
-                                        FontWeight.bold,
+                                    fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -295,8 +267,7 @@ class _EditBBPageState extends State<EditBBPage> {
                                   "kg",
                                   style: TextStyle(
                                     fontSize: 20,
-                                    fontWeight:
-                                        FontWeight.bold,
+                                    fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -314,17 +285,13 @@ class _EditBBPageState extends State<EditBBPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed:
-                          _isSaving ? null : _updateWeight,
+                      onPressed: _isSaving ? null : _updateWeight,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFF79D5F0),
+                        backgroundColor: const Color(0xFF79D5F0),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(30),
                         ),
-                        padding:
-                            const EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 16,
                         ),
                         elevation: 0,
@@ -338,8 +305,7 @@ class _EditBBPageState extends State<EditBBPage> {
                               style: TextStyle(
                                 fontSize: 20,
                                 color: Colors.white,
-                                fontWeight:
-                                    FontWeight.bold,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                     ),
