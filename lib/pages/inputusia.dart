@@ -5,7 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 
 class AgeGroupSelectionScreen extends StatefulWidget {
-  const AgeGroupSelectionScreen({super.key});
+  final String? patientUid;
+  final bool isFromPMO;
+
+  const AgeGroupSelectionScreen({
+    super.key,
+    this.patientUid,
+    this.isFromPMO = false,
+  });
 
   @override
   State<AgeGroupSelectionScreen> createState() =>
@@ -18,12 +25,17 @@ class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
 
   // --- Simpan usia ke Firestore ---
   Future<void> _saveAgeGroupToFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw Exception("User belum login");
-    }
+  final targetUid =
+    widget.patientUid ??
+    FirebaseAuth.instance.currentUser?.uid;
+    if (targetUid == null) {
+  throw Exception("User tidak ditemukan");
+}
 
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+    await FirebaseFirestore.instance
+    .collection('users')
+    .doc(targetUid)
+    .set({
       'ageGroup': _selectedAgeGroup,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -39,7 +51,13 @@ class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
       await _saveAgeGroupToFirestore();
 
       if (mounted) {
-        context.go('/input-weight');
+        context.push(
+          '/input-weight',
+          extra: {
+            'patientUid': widget.patientUid,
+            'isFromPMO': widget.isFromPMO,
+          },
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,10 +87,12 @@ class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
                     height: 150,
                   ),
                   const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 32.0),
+                   Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Text(
-                      "Setiap usia punya kebutuhan berbeda. Kamu termasuk yang mana?",
+                     widget.isFromPMO
+    ? "Pilih kelompok usia pasien"
+    : "Setiap usia punya kebutuhan berbeda. Kamu termasuk yang mana?",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,

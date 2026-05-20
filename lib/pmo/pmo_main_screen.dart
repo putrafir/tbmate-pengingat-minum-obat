@@ -4,20 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
-import 'package:tbmate_kmipn/pages/jadwal_page.dart';
-import 'package:tbmate_kmipn/pages/riwayat_page.dart';
+
 import 'package:tbmate_kmipn/pmo/pasien_list.dart';
 import 'package:tbmate_kmipn/pmo/pmo_jadwal_page.dart';
 
 class PmoMainScreen extends StatefulWidget {
-  const PmoMainScreen({super.key});
+  final int initialIndex;
+  final Widget? customPage;
+
+  const PmoMainScreen({
+    super.key,
+    this.initialIndex = 0,
+    this.customPage,
+  });
 
   @override
   State<PmoMainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<PmoMainScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex = 0;
   String? nickName; // untuk menyimpan nama dari Firestore
   String? fullName; // untuk menyimpan nama dari Firestore
   String? uniqueId; // untuk menyimpan nama dari Firestore
@@ -27,6 +33,7 @@ class _MainScreenState extends State<PmoMainScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _loadUserData();
   }
 
@@ -37,6 +44,11 @@ class _MainScreenState extends State<PmoMainScreen> {
   // ];
 
   void _onItemTapped(int index) {
+    if (widget.customPage != null && index == 1) {
+      Navigator.pop(context);
+      return;
+    }
+    
     setState(() {
       _selectedIndex = index;
     });
@@ -89,8 +101,9 @@ class _MainScreenState extends State<PmoMainScreen> {
     // 🔹 Di sini kita kirim nickName ke setiap halaman
     final pages = [
       PmoJadwalPage(nickName: nickName ?? "Pengguna"),
-      // PasienList(),
-      PasienList(),
+      widget.customPage ?? const PasienList(),
+
+      // const PasienList(),
       AkunPage(
         fullName: fullName ?? "Pengguna",
         uniqueId: uniqueId!,

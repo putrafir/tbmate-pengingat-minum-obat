@@ -5,10 +5,17 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/components/auth-header.dart';
-import 'package:tbmate_kmipn/services/alarm_service.dart';
+
 
 class SetWaktu extends StatefulWidget {
-  const SetWaktu({super.key});
+    final String? patientUid;
+  final bool isFromPMO;
+
+  const SetWaktu({
+    super.key,
+    this.patientUid,
+    this.isFromPMO = false,
+  });
 
   @override
   State<SetWaktu> createState() => _SetWaktuState();
@@ -49,8 +56,11 @@ class _SetWaktuState extends State<SetWaktu> {
   //   }
   // }
   Future<void> _ambilDataPasien() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final targetUid =
+    widget.patientUid ??
+    FirebaseAuth.instance.currentUser?.uid;
+
+if (targetUid == null) {
       setState(() => _isLoadingPasien = false);
       return;
     }
@@ -58,7 +68,7 @@ class _SetWaktuState extends State<SetWaktu> {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(targetUid)
           .get();
 
       if (doc.exists) {
@@ -87,8 +97,11 @@ class _SetWaktuState extends State<SetWaktu> {
         },
       );
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null || beratBadan == null) {
+      final targetUid =
+    widget.patientUid ??
+    FirebaseAuth.instance.currentUser?.uid;
+
+if (targetUid == null || beratBadan == null) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Data pasien belum lengkap")),
@@ -149,7 +162,7 @@ class _SetWaktuState extends State<SetWaktu> {
 
       final jadwalCollection = FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(targetUid)
           .collection('jadwal_obat');
 
       final now = DateTime.now();
@@ -191,8 +204,8 @@ class _SetWaktuState extends State<SetWaktu> {
           minute,
         );
 
-        final docRef = await jadwalCollection.add({
-          'userId': user.uid,
+        await jadwalCollection.add({
+          'userId': targetUid,
           'nama_obat': namaObat,
           'fase': 'Intensif',
           'dosis': tahapIntensif,
@@ -203,11 +216,14 @@ class _SetWaktuState extends State<SetWaktu> {
           'berat_badan': beratBadan,
           'createdAt': FieldValue.serverTimestamp(),
         });
-      
-          await AlarmService.scheduleAlarm(
-            id: docRef.id.hashCode,
-            date: tgl,
-          );
+
+       
+//           await AlarmService.scheduleAlarm(
+//             id: docRef.id.hashCode.abs(),
+//             date: tgl,
+//              docId: docRef.id,
+//           );
+
       }
 
       // Fase Lanjutan (3x seminggu, 16 minggu)
@@ -231,15 +247,12 @@ class _SetWaktuState extends State<SetWaktu> {
       //   }
       // }
       for (int week = 0; week < 16; week++) {
-
         for (int day = 0; day < 7; day++) {
-
           if (day == 1 || day == 3 || day == 5) {
-
             final tgl = now.add(Duration(days: 56 + (week * 7) + day));
 
-            final docRef = await jadwalCollection.add({
-              'userId': user.uid,
+            await jadwalCollection.add({
+              'userId': targetUid,
               'nama_obat': namaObat,
               'fase': 'Lanjutan',
               'dosis': tahapLanjutan,
@@ -251,18 +264,17 @@ class _SetWaktuState extends State<SetWaktu> {
               'createdAt': FieldValue.serverTimestamp(),
             });
 
-            await AlarmService.scheduleAlarm(
-              id: docRef.id.hashCode,
-              date: tgl,
-            );
+
+//             await AlarmService.scheduleAlarm(
+//               id: docRef.id.hashCode.abs(),
+//               date: tgl,
+//                docId: docRef.id,
+//             );
+
 
           }
-
         }
-
       }
-
-
 
       if (context.mounted) {
         Navigator.pop(context);
@@ -272,7 +284,15 @@ class _SetWaktuState extends State<SetWaktu> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/main-screen');
+        if (widget.isFromPMO) {
+
+            context.go('/pmo-main-screen');
+
+          } else {
+
+            context.go('/main-screen');
+
+          }
       }
     } catch (e) {
       Navigator.pop(context);
@@ -317,7 +337,9 @@ class _SetWaktuState extends State<SetWaktu> {
             imagePath: 'assets/tibi/tibi-happy.png',
             title: 'SETEL WAKTU',
             subtitle:
-                'Atur waktu pengingatmu agar TBMATE bisa bantu kamu minum obat tepat waktu.',
+               widget.isFromPMO
+    ? 'Atur jadwal minum obat pasien.'
+    : 'Atur waktu pengingatmu agar TBMATE bisa bantu kamu minum obat tepat waktu.'
           ),
           const SizedBox(height: 20),
           Expanded(

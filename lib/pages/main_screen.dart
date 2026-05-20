@@ -5,10 +5,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/pages/akun_page.dart';
 import 'package:tbmate_kmipn/pages/jadwal_page.dart';
-import 'package:tbmate_kmipn/pages/riwayat_page.dart';
+
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final bool showPopup;
+  final String? docId;
+
+  const MainScreen({
+    super.key,
+    this.showPopup = false,
+    this.docId,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -25,6 +32,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.showPopup) {
+      _selectedIndex = 0; // langsung ke Jadwal tab
+    }
+
     _loadUserData();
   }
 
@@ -40,36 +52,81 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  // Future<void> _loadUserData() async {
+  //   try {
+  //     final user = FirebaseAuth.instance.currentUser;
+  //     if (user == null) return;
+
+  //     final doc = await FirebaseFirestore.instance
+  //         .collection('users')
+  //         .doc(user.uid)
+  //         .get();
+
+  //     if (doc.exists) {
+  //       final data = doc.data();
+  //       setState(() {
+  //         nickName = data?['nickName'] ?? "Pengguna";
+  //         fullName = data?['fullName'] ?? ""; // <-- Tambahkan ini
+  //         uniqueId = data?['uniqueId']; // <-- Tambahkan ini
+  //         role = data?['role']; // <-- Tambahkan ini
+  //         isLoading = false;
+  //       });
+  //     } else {
+  //       setState(() {
+  //         nickName = "Pengguna";
+  //         fullName = ""; // <-- Default kosong kalau belum ada
+  //         isLoading = false;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     setState(() {
+  //       nickName = "Pengguna";
+  //       fullName = "";
+  //       isLoading = false;
+  //     });
+  //     debugPrint("Error load data user: $e");
+  //   }
+  // }
+
+// buat testing bypass data user tanpa login, kita tembak pakai UID akun asli dari Firestore
   Future<void> _loadUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+
+      // 🔹 TRIK BYPASS: Kalau belum login, kita tembak pakai UID akun asli dari Firestore
+      // Ganti "UID_TESTER_DARI_FIRESTORE" dengan Document ID pasien yang ada di database-mu
+      final String targetUid = user?.uid ?? "eRUHhnCwn9TKpSz5HixEKLvrtMf1";
 
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(targetUid)
           .get();
 
       if (doc.exists) {
         final data = doc.data();
         setState(() {
           nickName = data?['nickName'] ?? "Pengguna";
-          fullName = data?['fullName'] ?? ""; // <-- Tambahkan ini
-          uniqueId = data?['uniqueId']; // <-- Tambahkan ini
-          role = data?['role']; // <-- Tambahkan ini
+          fullName = data?['fullName'] ?? "";
+          uniqueId = data?['uniqueId'] ??
+              targetUid; // Kasih nilai default jaga-jaga kalau null
+          role = data?['role'] ?? "Pasien";
           isLoading = false;
         });
       } else {
         setState(() {
-          nickName = "Pengguna";
-          fullName = ""; // <-- Default kosong kalau belum ada
+          nickName = "Tester (Data Kosong)";
+          fullName = "";
+          uniqueId = "tester-123";
+          role = "Pasien";
           isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        nickName = "Pengguna";
+        nickName = "Error Load";
         fullName = "";
+        uniqueId = "error-123";
+        role = "Pasien";
         isLoading = false;
       });
       debugPrint("Error load data user: $e");
@@ -86,7 +143,11 @@ class _MainScreenState extends State<MainScreen> {
 
     // 🔹 Di sini kita kirim nickName ke setiap halaman
     final pages = [
-      JadwalPage(nickName: nickName ?? "Pengguna"),
+      JadwalPage(
+        nickName: nickName ?? "Pengguna",
+        showPopup: widget.showPopup,
+        docId: widget.docId,
+      ),
       // RiwayatPage(),
       AkunPage(
         fullName: fullName ?? "Pengguna",
@@ -118,6 +179,14 @@ class _MainScreenState extends State<MainScreen> {
             ),
             label: "Jadwal",
           ),
+          // BottomNavigationBarItem(
+          //   icon: SvgPicture.asset(
+          //     'assets/icons/riwayat.svg',
+          //     height: 24,
+          //     color: _selectedIndex == 1 ? kPrimaryGreen : Colors.grey,
+          //   ),
+          //   label: "Akun",
+          // ),
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
               'assets/icons/akun.svg',

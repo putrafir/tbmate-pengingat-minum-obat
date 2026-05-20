@@ -29,6 +29,14 @@ class _SignUpState extends State<SignUp> {
     final password = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
 
+    // Validasi input
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email dan password tidak boleh kosong")),
+      );
+      return;
+    }
+
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Password dan konfirmasi tidak sama")),
@@ -47,39 +55,95 @@ class _SignUpState extends State<SignUp> {
     setState(() => isLoading = true);
 
     try {
+      // Register dengan email dan password
       final userCredential = await authService.register(email, password);
+
       if (userCredential != null) {
         final user = userCredential.user;
         final usersRef = FirebaseFirestore.instance.collection('users');
 
-        final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+        // 🔹 SIMPAN DATA KE FIRESTORE
+        final doc = await usersRef.doc(user!.uid).get();
+        if (!doc.exists) {
+          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+          await usersRef.doc(user.uid).set({
+            'uniqueId': uniqueId,
+            'email': user.email,
+            'role': null,
+            'nickName': user.displayName ?? '',
+            'ageGroup': null,
+            'weight': null,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
 
-        // 🔹 Simpan data user baru ke Firestore
-        await usersRef.doc(user!.uid).set({
-          'uniqueId': uniqueId,
-          'email': user.email,
-          'role': null,
-          'nickName': null,
-          'ageGroup': null,
-          'weight': null,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
+        // 🔹 WAJIB CEK MOUNTED SETELAH AWAIT
+        if (!mounted) return;
         setState(() => isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Akun berhasil dibuat!")),
+          const SnackBar(content: Text("Berhasil membuat akun!")),
         );
-
-        // 🔹 Arahkan ke halaman input role
         context.go('/input-role');
       } else {
+        if (!mounted) return;
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email sudah terdaftar!")),
+          const SnackBar(
+              content: Text("Email sudah terdaftar atau ada kesalahan")),
         );
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Terjadi kesalahan: $e")),
+      );
+    }
+  }
+
+  // 🔹 METHOD BARU UNTUK GOOGLE SIGN UP
+  Future<void> _signUpWithGoogle() async {
+    setState(() => isLoading = true);
+
+    try {
+      final userCredential = await authService.signInWithGoogle();
+
+      if (userCredential != null) {
+        final user = userCredential.user;
+        final usersRef = FirebaseFirestore.instance.collection('users');
+
+        // 🔹 SIMPAN DATA KE FIRESTORE
+        final doc = await usersRef.doc(user!.uid).get();
+        if (!doc.exists) {
+          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
+          await usersRef.doc(user.uid).set({
+            'uniqueId': uniqueId,
+            'email': user.email,
+            'role': null,
+            'nickName': user.displayName ?? '',
+            'ageGroup': null,
+            'weight': null,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        if (!mounted) return;
+        setState(() => isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Berhasil sign up dengan Google!")),
+        );
+        context.go('/input-role');
+      } else {
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Proses Google sign up dibatalkan")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Terjadi kesalahan: $e")),
@@ -207,22 +271,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                     const SizedBox(height: 10),
                     ElevatedButton.icon(
-                      onPressed: isLoading
-                          ? null
-                          : () async {
-                              setState(() => isLoading = true);
-                              final userCredential =
-                                  await authService.signInWithGoogle();
-                              setState(() => isLoading = false);
-                              if (userCredential != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          "Berhasil sign up dengan Google!")),
-                                );
-                                context.go('/input-role');
-                              }
-                            },
+                      onPressed: isLoading ? null : _signUpWithGoogle,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
@@ -237,7 +286,9 @@ class _SignUpState extends State<SignUp> {
                         height: 24,
                         width: 24,
                       ),
-                      label: const Text('Sign Up with Google'),
+                      label: isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('Sign Up with Google'),
                     ),
                   ],
                 ),
