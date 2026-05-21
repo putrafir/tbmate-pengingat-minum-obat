@@ -28,12 +28,13 @@ class AkunPage extends StatefulWidget {
 
 class _AkunPageState extends State<AkunPage> {
   bool autoBackup = true;
+  bool get isPMOView => widget.patientUid != null;
 
   String maskPhoneNumber(String phone) {
     if (phone.length <= 3) return phone;
 
     final visible = phone.substring(phone.length - 3);
-    final hidden = '*' * (phone.length);
+    final hidden = '*' * (phone.length - 3);
     return '$hidden$visible';
   }
 
@@ -57,16 +58,27 @@ class _AkunPageState extends State<AkunPage> {
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
               child: SafeArea(
                 bottom: false,
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Akun",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                child: Row(
+                  children: [
+                    if (isPMOView)
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        isPMOView ? "Data Pasien" : "Akun",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold
+                        ),
+                      )
+                  ],
                 ),
               ),
             ),
@@ -74,287 +86,311 @@ class _AkunPageState extends State<AkunPage> {
             const SizedBox(height: 20),
 
             // 🔹 Konten utama
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 🔹 Profile section
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
+            StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(
+                      widget.patientUid ??
+                          FirebaseAuth.instance.currentUser!.uid,
+                    )
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  Map<String, dynamic>? userData;
+
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    userData = snapshot.data!.data() as Map<String, dynamic>;
+                  }
+                  final patientName = userData?['fullName'] ?? widget.fullName;
+                  final phone = userData?['phoneNumber'];
+
+                  final weight = userData?['weight'];
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: Colors.lightBlueAccent.shade100,
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.person, color: Colors.grey),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          widget.fullName,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        // 🔹 Profile section
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.lightBlueAccent.shade100,
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: Colors.white,
+                                child: Icon(Icons.person, color: Colors.grey),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                patientName,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // 🔹 Navigasi ke halaman Edit Nama
+                        _buildListTile(
+                          "UID",
+                          trailingWidget: GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: widget.uniqueId));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        "UID berhasil disalin ke clipboard")),
+                              );
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.uniqueId,
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.copy,
+                                    size: 18, color: Colors.grey),
+                              ],
+                            ),
+                          ),
+                        ),
+                        _buildListTile(isPMOView ? "Nama" : "Edit Nama",
+                            trailingText: isPMOView ? patientName : null,
+                            showArrow: !isPMOView,
+                            onTap: isPMOView
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => EditNamaPage(
+                                                  patientUid: widget.patientUid,
+                                                )));
+                                  }),
+
+                        // _buildListTile(
+                        //   "No. Handphone",
+                        //   onTap: () {
+                        //     Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //         builder: (context) => EditPhoneNumberPage(
+                        //           patientUid: widget.patientUid,
+                        //         ),
+                        //       ),
+                        //     );
+                        //   },
+                        // ),
+                        _buildListTile(
+                          "No. Handphone",
+                          trailingText: isPMOView
+                              ? (phone ?? 'Tidak Ada Telp')
+                              : (phone == null
+                                  ? "Tidak ada telp"
+                                  : maskPhoneNumber(phone)),
+                          showArrow: !isPMOView,
+                          onTap: isPMOView
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EditPhoneNumberPage(
+                                        patientUid: widget.patientUid,
+                                      ),
+                                    ),
+                                  );
+                                },
+                        ),
+                        if (widget.role != 'PMO')
+                          _buildListTile("Berat Badan",
+                              trailingText: isPMOView
+                                  ? (widget != null
+                                      ? "$weight kg"
+                                      : "BElum Ada")
+                                  : null,
+                              showArrow: !isPMOView,
+                              onTap: isPMOView
+                                  ? null
+                                  : () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) => EditBBPage(
+                                                    patientUid:
+                                                        widget.patientUid,
+                                                  )));
+                                    }),
+
+                        const SizedBox(height: 20),
+
+                        // 🔹 Notifikasi section
+                        _buildSectionTitle("Notifikasi"),
+                        // _buildListTile("Nada Dering"),
+                        _buildListTile(
+                          "Set Time Alarm",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditSetTime(),
+                              ),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // 🔹 Lainnya section
+                        // _buildSectionTitle("Lainnya"),
+                        // SwitchListTile(
+                        //   contentPadding: EdgeInsets.zero,
+                        //   title: const Text("Cadangkan"),
+                        //   subtitle: const Text("Data dicadangkan secara otomatis"),
+                        //   value: autoBackup,
+                        //   onChanged: (value) {
+                        //     setState(() {
+                        //       autoBackup = value;
+                        //     });
+                        //   },
+                        //   secondary: const Icon(Icons.cloud_outlined),
+                        // ),
+
+                        const SizedBox(height: 25),
+
+                        // 🔹 Tombol Logout
+                        SizedBox(
+                          width: double.infinity,
+                          child: widget.patientUid != null
+                              ? ElevatedButton.icon(
+                                  onPressed: () async {
+                                    try {
+                                      final pmoUid = FirebaseAuth
+                                          .instance.currentUser!.uid;
+
+                                      await FirebaseFirestore.instance
+                                          .collection('doctorPatients')
+                                          .doc(pmoUid)
+                                          .update({
+                                        'patients': FieldValue.arrayRemove(
+                                            [widget.patientUid])
+                                      });
+
+                                      if (!context.mounted) return;
+
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Pasien berhasil dihapus dari daftar",
+                                          ),
+                                        ),
+                                      );
+
+                                      context.pop();
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "Gagal menghapus pasien: $e",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.delete),
+                                  label: const Text("Hapus Pasien"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                )
+                              : ElevatedButton.icon(
+                                  onPressed: () async {
+                                    try {
+                                      final user =
+                                          FirebaseAuth.instance.currentUser;
+
+                                      if (user != null) {
+                                        for (final provider
+                                            in user.providerData) {
+                                          if (provider.providerId ==
+                                              'google.com') {
+                                            await GoogleSignIn().signOut();
+                                            break;
+                                          }
+                                        }
+                                      }
+
+                                      await FirebaseAuth.instance.signOut();
+
+                                      if (!context.mounted) return;
+
+                                      context.go('/auth');
+                                    } catch (e) {
+                                      debugPrint('logout error: $e');
+
+                                      if (!context.mounted) return;
+
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Logout Gagal: $e',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.logout),
+                                  label: const Text("Log Out"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Colors.lightBlueAccent.shade100,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
                         ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // 🔹 Navigasi ke halaman Edit Nama
-                  _buildListTile(
-                    "UID",
-                    trailingWidget: GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: widget.uniqueId));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text("UID berhasil disalin ke clipboard")),
-                        );
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            widget.uniqueId,
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.copy, size: 18, color: Colors.grey),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _buildListTile(
-                    "Edit Nama",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditNamaPage(
-                            patientUid: widget.patientUid,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // _buildListTile(
-                  //   "No. Handphone",
-                  //   onTap: () {
-                  //     Navigator.push(
-                  //       context,
-                  //       MaterialPageRoute(
-                  //         builder: (context) => EditPhoneNumberPage(
-                  //           patientUid: widget.patientUid,
-                  //         ),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
-                  StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(
-                            widget.patientUid ??
-                                FirebaseAuth.instance.currentUser!.uid,
-                          )
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        String phone = '_';
-
-                        if (snapshot.hasData && snapshot.data!.exists) {
-                          final data =
-                              snapshot.data!.data() as Map<String, dynamic>;
-
-                          phone = data['phoneNumber'] ?? '_';
-                        }
-
-                        return _buildListTile(
-                          "no. Handphone",
-                          trailingText:
-                              phone != '_' ? maskPhoneNumber(phone) : '_',
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => EditPhoneNumberPage(
-                                          patientUid: widget.patientUid,
-                                        )));
-                          },
-                        );
-                      }),
-
-                  if (widget.role != 'PMO')
-                    _buildListTile(
-                      "Berat Badan",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditBBPage(
-                              patientUid: widget.patientUid,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                  const SizedBox(height: 20),
-
-                  // 🔹 Notifikasi section
-                  _buildSectionTitle("Notifikasi"),
-                  // _buildListTile("Nada Dering"),
-                  _buildListTile(
-                    "Set Time Alarm",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EditSetTime(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 🔹 Lainnya section
-                  // _buildSectionTitle("Lainnya"),
-                  // SwitchListTile(
-                  //   contentPadding: EdgeInsets.zero,
-                  //   title: const Text("Cadangkan"),
-                  //   subtitle: const Text("Data dicadangkan secara otomatis"),
-                  //   value: autoBackup,
-                  //   onChanged: (value) {
-                  //     setState(() {
-                  //       autoBackup = value;
-                  //     });
-                  //   },
-                  //   secondary: const Icon(Icons.cloud_outlined),
-                  // ),
-
-                  const SizedBox(height: 25),
-
-                  // 🔹 Tombol Logout
-                  SizedBox(
-                    width: double.infinity,
-                    child: widget.patientUid != null
-                        ? ElevatedButton.icon(
-                            onPressed: () async {
-                              try {
-                                final pmoUid =
-                                    FirebaseAuth.instance.currentUser!.uid;
-
-                                await FirebaseFirestore.instance
-                                    .collection('doctorPatients')
-                                    .doc(pmoUid)
-                                    .update({
-                                  'patients': FieldValue.arrayRemove(
-                                      [widget.patientUid])
-                                });
-
-                                if (!context.mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Pasien berhasil dihapus dari daftar",
-                                    ),
-                                  ),
-                                );
-
-                                context.pop();
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Gagal menghapus pasien: $e",
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.delete),
-                            label: const Text("Hapus Pasien"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          )
-                        : ElevatedButton.icon(
-                            onPressed: () async {
-                              try {
-                                final user = FirebaseAuth.instance.currentUser;
-
-                                if (user != null) {
-                                  for (final provider in user.providerData) {
-                                    if (provider.providerId == 'google.com') {
-                                      await GoogleSignIn().signOut();
-                                      break;
-                                    }
-                                  }
-                                }
-
-                                await FirebaseAuth.instance.signOut();
-
-                                if (!context.mounted) return;
-
-                                context.go('/auth');
-                              } catch (e) {
-                                debugPrint('logout error: $e');
-
-                                if (!context.mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Logout Gagal: $e',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.logout),
-                            label: const Text("Log Out"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.lightBlueAccent.shade100,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            ),
+                  );
+                })
           ],
         ),
       ),
@@ -362,8 +398,13 @@ class _AkunPageState extends State<AkunPage> {
   }
 
   // ✅ Fungsi ListTile dengan dukungan onTap
-  Widget _buildListTile(String title,
-      {String? trailingText, Widget? trailingWidget, VoidCallback? onTap}) {
+  Widget _buildListTile(
+    String title, {
+    String? trailingText,
+    Widget? trailingWidget,
+    VoidCallback? onTap,
+    bool showArrow = true,
+  }) {
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
@@ -373,12 +414,17 @@ class _AkunPageState extends State<AkunPage> {
               ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(trailingText,
-                        style: const TextStyle(color: Colors.grey)),
-                    const Icon(Icons.chevron_right, color: Colors.grey),
+                    Text(
+                      trailingText,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    if (showArrow)
+                      const Icon(Icons.chevron_right, color: Colors.grey),
                   ],
                 )
-              : const Icon(Icons.chevron_right, color: Colors.grey)),
+              : (showArrow
+                  ? const Icon(Icons.chevron_right, color: Colors.grey)
+                  : null)),
       onTap: onTap, // ✅ agar bisa diklik navigasi
     );
   }
