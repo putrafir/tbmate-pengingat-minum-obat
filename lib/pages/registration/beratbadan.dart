@@ -5,9 +5,8 @@ import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/pages/registration/inputusia.dart';
 import 'package:go_router/go_router.dart';
 
-
 class WeightSelectionScreen extends StatefulWidget {
-   final String? patientUid;
+  final String? patientUid;
   final bool isFromPMO;
 
   const WeightSelectionScreen({
@@ -21,8 +20,8 @@ class WeightSelectionScreen extends StatefulWidget {
 }
 
 class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
-  final int minWeight = 37;
-  final int maxWeight = 70;
+  final int minWeight = 20;
+  final int maxWeight = 150;
   late int _selectedWeight;
   late ScrollController _scrollController;
   bool _isSaving = false;
@@ -30,7 +29,7 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedWeight = 41;
+    _selectedWeight = 50;
     final initialOffset = (_selectedWeight - minWeight) * 40.0;
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
     _scrollController.addListener(_onScroll);
@@ -76,8 +75,7 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
 
     try {
       final targetUid =
-    widget.patientUid ??
-    FirebaseAuth.instance.currentUser?.uid;
+          widget.patientUid ?? FirebaseAuth.instance.currentUser?.uid;
 
       if (targetUid != null) {
         await FirebaseFirestore.instance
@@ -94,13 +92,13 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                 content: Text("✅ Berat badan $_selectedWeight kg disimpan")),
           );
 
-         context.push(
-          '/set-time',
-          extra: {
-            'patientUid': widget.patientUid,
-            'isFromPMO': widget.isFromPMO,
-          },
-        );
+          context.push(
+            '/set-time',
+            extra: {
+              'patientUid': widget.patientUid,
+              'isFromPMO': widget.isFromPMO,
+            },
+          );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,13 +145,14 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                       icon: const Icon(Icons.arrow_back,
                           color: Colors.white, size: 28),
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const AgeGroupSelectionScreen(),
-                          ),
-                        );
+                        Navigator.pop(context);
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) =>
+                        //         const AgeGroupSelectionScreen(),
+                        //   ),
+                        // );
                       },
                     ),
                   ),
@@ -164,10 +163,10 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                   height: 220,
                 ),
                 const SizedBox(height: 12),
-                 Text(
+                Text(
                   widget.isFromPMO
-                    ? "Masukkan berat badan pasien untuk menentukan dosis pengobatan"
-                    : "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas buatmu",
+                      ? "Masukkan berat badan pasien untuk menentukan dosis pengobatan"
+                      : "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas buatmu",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
@@ -195,8 +194,10 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    "Berat badan pasien membantu menentukan program pengobatan TB yang tepat dengan obat FDC (Fixed-Dose Combined)",
+                   Text(
+                      widget.isFromPMO
+                      ? "Berat badan pasien membantu menentukan program pengobatan TB yang tepat dengan obat FDC (Fixed-Dose Combined)"
+                      : "Berat badan membantu  TBMATE menyesuaikan dan pemantauan kesehatanmu",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black45,
@@ -278,7 +279,7 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
