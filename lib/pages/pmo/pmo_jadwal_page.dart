@@ -51,7 +51,7 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
     final doc = await FirebaseFirestore.instance
-        .collection('doctorPatients')
+        .collection('PMO')
         .doc(user.uid)
         .get();
     if (doc.exists) {

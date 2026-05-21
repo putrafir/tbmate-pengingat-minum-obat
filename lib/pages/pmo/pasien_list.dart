@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
 import 'package:tbmate_kmipn/pages/pmo/pmo_main_screen.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/akun_pagenew.dart';
 
 class PasienList extends StatefulWidget {
   const PasienList({super.key});
@@ -53,7 +54,7 @@ class _PasienListState extends State<PasienList> {
   /// 🔹 Fungsi untuk otomatis buat dokumen doctorPatients
   Future<void> _ensureDoctorPatientsDoc(String doctorId) async {
     final docRef =
-        FirebaseFirestore.instance.collection('doctorPatients').doc(doctorId);
+        FirebaseFirestore.instance.collection('PMO').doc(doctorId);
     final snapshot = await docRef.get();
 
     if (!snapshot.exists) {
@@ -78,12 +79,12 @@ class _PasienListState extends State<PasienList> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FFF4),
-      body: FutureBuilder<DocumentSnapshot>(
+      body: StreamBuilder<DocumentSnapshot>(
         // 🔹 Ambil daftar pasien untuk PMO login
-        future: FirebaseFirestore.instance
-            .collection('doctorPatients')
+        stream: FirebaseFirestore.instance
+            .collection('PMO')
             .doc(currentDoctorId)
-            .get(),
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -179,7 +180,7 @@ class _PasienListState extends State<PasienList> {
                             MaterialPageRoute(
                               builder: (_) => PmoMainScreen(
                                 initialIndex: 1,
-                                customPage: AkunPage(
+                                customPage: AkunPageRev(
                                   fullName: fullName,
                                   uniqueId: data['uniqueId'] ?? '',
                                   role: data['role'] ?? '',
@@ -536,7 +537,7 @@ class _PasienListState extends State<PasienList> {
                                 final patientData = patientDoc.data();
 
                                 final doctorDoc = FirebaseFirestore.instance
-                                    .collection('doctorPatients')
+                                    .collection('PMO')
                                     .doc(currentDoctorId);
 
                                 await FirebaseFirestore.instance
