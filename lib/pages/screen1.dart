@@ -61,7 +61,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         currentIndex++;
       });
     } else {
-      context.go('/input-name');
+      context.go('/registration-wizard');
     }
   }
 

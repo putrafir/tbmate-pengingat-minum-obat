@@ -1,5 +1,6 @@
 import 'dart:convert'; // 🔹 Wajib untuk base64Decode
 import 'dart:typed_data'; // 🔹 Wajib untuk Uint8List
+import 'package:cloud_firestore/cloud_firestore.dart'; // 🔹 Tambahan untuk fetch data sub-koleksi
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -11,13 +12,12 @@ class DetailRiwayat extends StatelessWidget {
   final String waktu;
   final String tanggal;
 
-
   // 🔹 Tambahan Parameter untuk Menerima Data AI & Foto dari Firestore
-  final Map<String, dynamic>? buktiFoto;
   final String? verifikasiAi;
   final double? skorAi;
   final String? waktuVerifikasi;
   final List<dynamic> riwayatTunda;
+  final String jadwalDocPath; // 🔹 Path dokumen untuk FutureBuilder
 
   const DetailRiwayat({
     super.key,
@@ -27,13 +27,12 @@ class DetailRiwayat extends StatelessWidget {
     required this.status,
     required this.waktu,
     required this.tanggal,
-    this.buktiFoto,
     this.verifikasiAi,
     this.skorAi,
     this.waktuVerifikasi,
     required this.riwayatTunda,
+    required this.jadwalDocPath, // Wajib diisi
   });
-
 
   // ==============================================================
   // 🔹 FUNGSI AJAIB: Menyulap Teks Base64 Kembali Menjadi Gambar
@@ -88,6 +87,15 @@ class DetailRiwayat extends StatelessWidget {
     }
   }
 
+  // 🔹 FUNGSI PENJEMPUT BUKTI FOTO (ASINKRON)
+  Future<DocumentSnapshot> _fetchBuktiFoto() {
+    return FirebaseFirestore.instance
+        .doc(jadwalDocPath)
+        .collection('bukti')
+        .doc('foto_verifikasi')
+        .get();
+  }
+
   @override
   Widget build(BuildContext context) {
     // ================= STATUS DINAMIS =================
@@ -117,16 +125,12 @@ class DetailRiwayat extends StatelessWidget {
     DateTime parsedDate = DateTime.parse(tanggal);
     String formattedDate = DateFormat('d MMMM', 'id_ID').format(parsedDate);
 
-    // Ambil list foto burst (jika ada)
-    List<dynamic> prosesMinum = buktiFoto?['proses_minum'] ?? [];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5FBF5),
 
       // ================= HEADER =================
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
-
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
@@ -138,7 +142,6 @@ class DetailRiwayat extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-
         centerTitle: true,
       ),
 
@@ -146,7 +149,6 @@ class DetailRiwayat extends StatelessWidget {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16),
-
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
@@ -173,7 +175,6 @@ class DetailRiwayat extends StatelessWidget {
                       Text(subtitleText),
                     ],
                   ),
-
                 ),
 
                 const SizedBox(height: 16),
@@ -201,11 +202,10 @@ class DetailRiwayat extends StatelessWidget {
                     style: const TextStyle(color: Colors.blue)),
                 const SizedBox(height: 24),
 
-
                 // =========================================================
                 // 🔹 BAGIAN BARU: HASIL VERIFIKASI AI & BUKTI FOTO vDOT
                 // =========================================================
-                if (buktiFoto != null || verifikasiAi != null) ...[
+                if (verifikasiAi != null) ...[
                   const Divider(),
                   const SizedBox(height: 8),
                   const Text("Verifikasi Pengawas (vDOT)",
@@ -214,163 +214,192 @@ class DetailRiwayat extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   // 1. KOTAK STATUS AI
-                  if (verifikasiAi != null)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16), // Fixed here
-                      decoration: BoxDecoration(
-                        color: verifikasiAi == 'Valid'
-                            ? Colors.green.shade50
-                            : Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16), // Fixed here
+                    decoration: BoxDecoration(
+                      color: verifikasiAi == 'Valid'
+                          ? Colors.green.shade50
+                          : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: verifikasiAi == 'Valid'
+                              ? Colors.green
+                              : Colors.orange),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                            verifikasiAi == 'Valid'
+                                ? Icons.check_circle
+                                : Icons.warning,
                             color: verifikasiAi == 'Valid'
                                 ? Colors.green
                                 : Colors.orange),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                              verifikasiAi == 'Valid'
-                                  ? Icons.check_circle
-                                  : Icons.warning,
-                              color: verifikasiAi == 'Valid'
-                                  ? Colors.green
-                                  : Colors.orange),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              skorAi != null
-                                  ? "Skor Kemiripan Obat: ${(skorAi! * 100).toStringAsFixed(0)}%\nSaran AI: $verifikasiAi"
-                                  : "Status AI: $verifikasiAi",
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 13),
-                            ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            skorAi != null
+                                ? "Skor Kemiripan Obat: ${(skorAi! * 100).toStringAsFixed(0)}%\nSaran AI: $verifikasiAi"
+                                : "Status AI: $verifikasiAi",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-
-                  // 2. FOTO OBAT & FOTO MANGAP
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("Obat & Wajah",
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 4),
-                          _buildBase64Image(buktiFoto?['obat']),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("Mulut Terbuka",
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 4),
-                          _buildBase64Image(buktiFoto?['mulut_kosong']),
-                        ],
-                      ),
-                    ],
                   ),
 
+                  // 🔹 FUTURE BUILDER UNTUK MENGAMBIL FOTO DARI SUB-KOLEKSI
+                  FutureBuilder<DocumentSnapshot>(
+                    future: _fetchBuktiFoto(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                            child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: CircularProgressIndicator()));
+                      }
 
-                  const SizedBox(height: 16),
+                      if (!snapshot.hasData || !snapshot.data!.exists) {
+                        return const Center(
+                            child: Text(
+                                "Bukti foto sedang diproses atau tidak ditemukan.",
+                                style: TextStyle(
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic)));
+                      }
 
-                  // 3. FOTO BURST (MENELAN)
-                  const Text("Proses Menelan",
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  if (prosesMinum.isEmpty)
-                    const Text("Tidak ada rekaman burst.",
-                        style: TextStyle(
-                            fontStyle: FontStyle.italic, color: Colors.grey))
-                  else
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: prosesMinum.map((b64) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 10),
-                            child: _buildBase64Image(b64.toString()),
-                          );
-                        }).toList(),
-                      ),
-                    ),
+                      final buktiData =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      List<dynamic> prosesMinum =
+                          buktiData['proses_minum'] ?? [];
 
-                  const SizedBox(height: 24),
-                ],
-
-               
-
-              // ================= DROPDOWN CATATAN (DUMMY) =================
-              ExpansionTile(
-                 tilePadding: const EdgeInsets.symmetric(horizontal: 0),
-                 childrenPadding: const EdgeInsets.symmetric(horizontal: 0),
-                title: const Text("Lihat catatan",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                ),
-                children: riwayatTunda.isEmpty
-                    ? [
-                        const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            "Tidak ada catatan untuk jadwal ini.",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        )
-                      ]
-                    : riwayatTunda.map((item) {
-                        final alasan = item['alasan_tunda'] ?? "-";
-                        final waktu = item['waktu_tunda'];
-
-                        DateTime? date;
-                        if (waktu != null) {
-                           date = waktu.toDate();
-                         
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 2. FOTO OBAT & FOTO MANGAP
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  alasan,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w500
-                                  ),
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Obat & Wajah",
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
+                                  const SizedBox(height: 4),
+                                  _buildBase64Image(buktiData['obat']),
+                                ],
                               ),
-                              Text(
-                                date != null
-                                    ? DateFormat('HH.mm', 'id_ID').format(date)
-                                   : "-",
-                                style: const TextStyle(
-                                  color: Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Mulut Terbuka",
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
+                                  const SizedBox(height: 4),
+                                  _buildBase64Image(buktiData['mulut_kosong']),
+                                ],
                               ),
                             ],
                           ),
-                        );
-                      }).toList(),
-            )
-            ],
+
+                          const SizedBox(height: 16),
+
+                          // 3. FOTO BURST (MENELAN)
+                          const Text("Proses Menelan",
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          if (prosesMinum.isEmpty)
+                            const Text("Tidak ada rekaman burst.",
+                                style: TextStyle(
+                                    fontStyle: FontStyle.italic,
+                                    color: Colors.grey))
+                          else
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: prosesMinum.map((b64) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 10),
+                                    child: _buildBase64Image(b64.toString()),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // ================= DROPDOWN CATATAN (DUMMY) =================
+                ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 0),
+                  childrenPadding: const EdgeInsets.symmetric(horizontal: 0),
+                  title: const Text(
+                    "Lihat catatan",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  children: riwayatTunda.isEmpty
+                      ? [
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text(
+                              "Tidak ada catatan untuk jadwal ini.",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        ]
+                      : riwayatTunda.map((item) {
+                          final alasan = item['alasan_tunda'] ?? "-";
+                          final waktu = item['waktu_tunda'];
+
+                          DateTime? date;
+                          if (waktu != null) {
+                            date = waktu.toDate();
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    alasan,
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                                Text(
+                                  date != null
+                                      ? DateFormat('HH.mm', 'id_ID')
+                                          .format(date)
+                                      : "-",
+                                  style: const TextStyle(
+                                    color: Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                )
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

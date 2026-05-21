@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class NameInputScreen extends StatefulWidget {
-  const NameInputScreen({super.key});
+class NameStep extends StatefulWidget {
+  final Function(String fullName, String nickName) onNext;
+  const NameStep({super.key, required this.onNext});
 
   @override
-  State<NameInputScreen> createState() => _NameInputScreenState();
+  State<NameStep> createState() => _NameStepState();
 }
 
-class _NameInputScreenState extends State<NameInputScreen> {
+class _NameStepState extends State<NameStep> {
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController nickNameController = TextEditingController();
   OverlayEntry? _overlayEntry;
-
-  bool _isSaving = false;
 
   // --- Overlay Error ---
   void _showError(String message) {
@@ -72,8 +68,8 @@ class _NameInputScreenState extends State<NameInputScreen> {
     _overlayEntry = null;
   }
 
-  // --- Input Validation & Save ---
-  Future<void> _validateAndSubmit() async {
+  // --- Input Validation ---
+  void _validateAndSubmit() {
     final fullName = fullNameController.text.trim();
     final nickName = nickNameController.text.trim();
     final nameRegex = RegExp(r'^[A-Za-zÀ-ÿ\s]+$');
@@ -86,51 +82,7 @@ class _NameInputScreenState extends State<NameInputScreen> {
       return;
     }
 
-    setState(() => _isSaving = true);
-
-    try {
-      await _saveNameToFirestore(fullName, nickName);
-
-      // 🔹 Ambil role dari Firestore setelah simpan
-      final user = FirebaseAuth.instance.currentUser;
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .get();
-      final role = doc.data()?['role']?.toString().toUpperCase();
-
-      // 🔹 Navigasi sesuai role
-      if (role == 'PMO') {
-        context.go('/pmo-main-screen'); // langsung ke jadwal PMO
-      } else {
-        context.go('/welcome', extra: {
-          'nickName': nickName,
-        });
-      }
-    } catch (e) {
-      _showError("Gagal menyimpan data. Coba lagi.");
-    } finally {
-      setState(() => _isSaving = false);
-    }
-  }
-
-  // --- Firestore Save ---
-  Future<void> _saveNameToFirestore(String fullName, String nickName) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw Exception("User belum login");
-    }
-
-    final userDoc =
-        FirebaseFirestore.instance.collection('users').doc(user.uid);
-
-    await userDoc.set({
-      'fullName': fullName,
-      'nickName': nickName,
-      'email': user.email ?? '',
-      'phoneNumber': user.phoneNumber ?? '',
-      'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    widget.onNext(fullName, nickName);
   }
 
   // --- Input Field ---
@@ -247,7 +199,7 @@ class _NameInputScreenState extends State<NameInputScreen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _isSaving ? null : _validateAndSubmit,
+                          onPressed: _validateAndSubmit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.lightBlueAccent,
                             shape: RoundedRectangleBorder(
@@ -255,17 +207,14 @@ class _NameInputScreenState extends State<NameInputScreen> {
                             ),
                             elevation: 3,
                           ),
-                          child: _isSaving
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : const Text(
-                                  "Lanjut",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                          child: const Text(
+                            "Lanjut",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
 import 'package:tbmate_kmipn/pages/pmo/pmo_main_screen.dart';
-import 'package:tbmate_kmipn/pages/pasien/profile/akun_pagenew.dart';
 
 class PasienList extends StatefulWidget {
   const PasienList({super.key});
@@ -53,8 +52,7 @@ class _PasienListState extends State<PasienList> {
 
   /// 🔹 Fungsi untuk otomatis buat dokumen doctorPatients
   Future<void> _ensureDoctorPatientsDoc(String doctorId) async {
-    final docRef =
-        FirebaseFirestore.instance.collection('PMO').doc(doctorId);
+    final docRef = FirebaseFirestore.instance.collection('PMO').doc(doctorId);
     final snapshot = await docRef.get();
 
     if (!snapshot.exists) {
@@ -174,22 +172,22 @@ class _PasienListState extends State<PasienList> {
                           ),
                           trailing:
                               const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PmoMainScreen(
-                                initialIndex: 1,
-                                customPage: AkunPageRev(
-                                  fullName: fullName,
-                                  uniqueId: data['uniqueId'] ?? '',
-                                  role: data['role'] ?? '',
-                                  patientUid: patient.id,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PmoMainScreen(
+                                  initialIndex: 1,
+                                  customPage: AkunPage(
+                                    fullName: fullName,
+                                    uniqueId: data['uniqueId'] ?? '',
+                                    role: data['role'] ?? '',
+                                    patientUid: patient.id,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
                         ),
                       );
                     },
@@ -262,7 +260,6 @@ class _PasienListState extends State<PasienList> {
     );
   }
 
- 
   /// 🔹 Dialog Modern Tambah Pasien
   void _showAddPatientDialog(BuildContext context) {
     showGeneralDialog(

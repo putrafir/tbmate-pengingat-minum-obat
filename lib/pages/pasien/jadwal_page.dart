@@ -102,14 +102,16 @@ class _JadwalPageState extends State<JadwalPage> {
         .snapshots();
   }
 
-  Stream<QuerySnapshot> getSemuaJadwal() {
+  Stream<DocumentSnapshot> getProfilePasien() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Stream.empty();
 
+    // 🔹 BYPASS TRIK: Sesuaikan jika kamu sedang melakukan testing tanpa login
+    final String targetUid = user.uid; // atau pakai UID tester kamu
+
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
-        .collection('jadwal_obat')
+        .doc(targetUid)
         .snapshots();
   }
 
@@ -201,109 +203,38 @@ class _JadwalPageState extends State<JadwalPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // =================== KOTAK SARAN DOKTER ===================
-                  // Container(
-                  //   decoration: BoxDecoration(
-                  //     color: const Color(0xFFE3F2FD),
-                  //     borderRadius: BorderRadius.circular(10),
-                  //   ),
-                  //   padding: const EdgeInsets.all(5),
-                  //   child: Row(
-                  //     children: [
-                  //       Image.asset('assets/images/icondoctor.png', height: 80),
-                  //       const SizedBox(width: 12),
-                  //       const Expanded(
-                  //         child: Padding(
-                  //           padding: EdgeInsets.only(left: 10),
-                  //           child: Column(
-                  //             crossAxisAlignment: CrossAxisAlignment.start,
-                  //             children: [
-                  //               Text(
-                  //                 "Butuh saran dokter?",
-                  //                 style: TextStyle(
-                  //                   fontSize: 16,
-                  //                   fontWeight: FontWeight.bold,
-                  //                   color: Colors.black87,
-                  //                 ),
-                  //               ),
-                  //               SizedBox(height: 8),
-                  //               SizedBox(
-                  //                 height: 32,
-                  //                 child: ElevatedButton(
-                  //                   onPressed: null,
-                  //                   style: ButtonStyle(
-                  //                     backgroundColor: WidgetStatePropertyAll(
-                  //                         Color(0xFF2E7D32)),
-                  //                     foregroundColor:
-                  //                         WidgetStatePropertyAll(Colors.white),
-                  //                     shape: WidgetStatePropertyAll(
-                  //                       RoundedRectangleBorder(
-                  //                         borderRadius: BorderRadius.all(
-                  //                             Radius.circular(8)),
-                  //                       ),
-                  //                     ),
-                  //                   ),
-                  //                   child: Text(
-                  //                     "Konsultasi Sekarang",
-                  //                     style: TextStyle(fontSize: 12),
-                  //                   ),
-                  //                 ),
-                  //               ),
-                  //             ],
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
+                  // =================== WRAPPER STREAM UNTUK RINGKASAN DATA PROFIL ===================
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: getProfilePasien(),
+                    builder: (context, snapshotProfile) {
+                      // 1. Inisialisasi Nilai Default Ringkasan
+                      String currentPhase = "Intensif";
+                      int obatDiminum = 0;
+                      int totalHariFase = 56; // Default Intensif
 
-                  const SizedBox(height: 10),
+                      if (snapshotProfile.hasData &&
+                          snapshotProfile.data!.exists) {
+                        final data = snapshotProfile.data!.data()
+                            as Map<String, dynamic>;
 
-                  // =================== WRAPPER STREAM UNTUK RINGKASAN & JADWAL ===================
-                  StreamBuilder<QuerySnapshot>(
-                    stream: getSemuaJadwal(),
-                    builder: (context, snapshotGlobal) {
-                      // 1. Hitung Ringkasan Dinamis
-                      Set<String> hariDiminum = {};
-                      Set<String> hariTerlewati = {};
-                      int totalHari =
-                          62; // Asumsi total hari pengobatan, bisa disesuaikan dengan data sebenarnya
+                        // Baca fase aktif pasien saat ini
+                        currentPhase = data['currentPhase'] ?? 'Intensif';
 
-                      if (snapshotGlobal.hasData) {
-                        for (var doc in snapshotGlobal.data!.docs) {
-                          final data = doc.data() as Map<String, dynamic>;
-
-                          String status = data['status'] ?? 'Belum diminum';
-                          String tanggal = data['tanggal'];
-
-                          DateTime tglObat =
-                              DateFormat('yyyy-MM-dd').parse(tanggal);
-                          DateTime now = DateTime.now();
-                          DateTime todayOnly =
-                              DateTime(now.year, now.month, now.day);
-
-                          // 🔥 AUTO STATUS
-                          if (status != "Sudah diminum") {
-                            if (tglObat.isBefore(todayOnly)) {
-                              status = "Terlewati";
-                            }
-                          }
-
-                          // 🔥 HITUNG PER HARI (bukan per obat)
-                          if (status == "Sudah diminum") {
-                            hariDiminum.add(tanggal);
-                          } else if (status == "Terlewati") {
-                            hariTerlewati.add(tanggal);
-                          }
+                        // Ambil stats kepatuhan secara instan tanpa looping dokumen lagi
+                        if (currentPhase == 'Lanjutan') {
+                          obatDiminum = data['diminumLanjutan'] ?? 0;
+                          totalHariFase = data['totalLanjutan'] ?? 48;
+                        } else {
+                          obatDiminum = data['diminumIntensif'] ?? 0;
+                          totalHariFase = data['totalIntensif'] ?? 56;
                         }
                       }
 
-                      int obatDiminum = hariDiminum.length;
-                      int obatDilewati = hariTerlewati.length;
-
-                      double progress =
-                          (obatDiminum / totalHari).clamp(0.0, 1.0);
-                      int sisaHari = totalHari - obatDiminum;
+                      // Hitung persentase progress dan sisa hari harian
+                      double progress = (totalHariFase > 0)
+                          ? (obatDiminum / totalHariFase).clamp(0.0, 1.0)
+                          : 0.0;
+                      int sisaHari = totalHariFase - obatDiminum;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,9 +250,9 @@ class _JadwalPageState extends State<JadwalPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "Ringkasan kamu hari ini",
-                                  style: TextStyle(
+                                Text(
+                                  "Ringkasan kamu hari ini (Fase $currentPhase)",
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
                                   ),
@@ -343,7 +274,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                   alignment: Alignment.centerRight,
                                   child: Text(
                                     "Sisa $sisaHari hari lagi",
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.black54,
                                       fontSize: 12,
                                     ),
@@ -378,6 +309,8 @@ class _JadwalPageState extends State<JadwalPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
+
+                                    // Sisa Hari Pengobatan Fase Aktif
                                     Expanded(
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
@@ -390,7 +323,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                         child: Column(
                                           children: [
                                             Text(
-                                              "$obatDilewati",
+                                              "$sisaHari",
                                               style: const TextStyle(
                                                 fontSize: 22,
                                                 fontWeight: FontWeight.bold,
@@ -398,7 +331,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                               ),
                                             ),
                                             const SizedBox(height: 4),
-                                            const Text("Dilewati"),
+                                            const Text("Sisa Hari"),
                                           ],
                                         ),
                                       ),
@@ -534,7 +467,7 @@ class _JadwalPageState extends State<JadwalPage> {
                           ),
                           const SizedBox(height: 8),
 
-                          // =================== LIST OBAT ===================
+                          // =================== LIST OBAT HARIAN (INI YANG TADI HILANG) ===================
                           StreamBuilder<QuerySnapshot>(
                             stream: getJadwalObat(selectedDate),
                             builder: (context, snapshot) {
@@ -586,19 +519,16 @@ class _JadwalPageState extends State<JadwalPage> {
 
                                   String status =
                                       data['status'] ?? 'Belum diminum';
-
                                   DateTime now = DateTime.now();
-
                                   bool isHariIni = tanggal ==
                                       DateFormat('yyyy-MM-dd').format(now);
 
-                                  // parsing waktu
+                                  // Parsing Waktu
                                   DateTime waktuObat;
                                   try {
                                     DateFormat format = DateFormat("HH:mm");
                                     DateTime parsedTime =
                                         format.parse(waktuMinum);
-
                                     waktuObat = DateTime(
                                       now.year,
                                       now.month,
@@ -618,7 +548,6 @@ class _JadwalPageState extends State<JadwalPage> {
                                   bool tombolDisabled;
                                   String tombolLabel;
 
-                                  // 🔥 LOGIC TOMBOL (INI YANG HILANG)
                                   if (isHariIni) {
                                     if (status == "Sudah diminum" ||
                                         status == "Terlewati") {
@@ -638,7 +567,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                   DateTime todayOnly =
                                       DateTime(now.year, now.month, now.day);
 
-                                  // 🔥 AUTO STATUS
+                                  // Auto Status Update
                                   if (status != "Sudah diminum" &&
                                       status != "Ditunda") {
                                     if (tglObat.isBefore(todayOnly)) {
@@ -720,19 +649,15 @@ class _JadwalPageState extends State<JadwalPage> {
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
-                                              Text(
-                                                dosis,
-                                                style: const TextStyle(
-                                                    color: Colors.black54,
-                                                    fontSize: 13),
-                                              ),
+                                              Text(dosis,
+                                                  style: const TextStyle(
+                                                      color: Colors.black54,
+                                                      fontSize: 13)),
                                               const SizedBox(height: 2),
-                                              Text(
-                                                fase,
-                                                style: const TextStyle(
-                                                    color: Colors.black54,
-                                                    fontSize: 13),
-                                              ),
+                                              Text(fase,
+                                                  style: const TextStyle(
+                                                      color: Colors.black54,
+                                                      fontSize: 13)),
                                               const SizedBox(height: 8),
                                               Row(
                                                 mainAxisAlignment:
@@ -756,9 +681,6 @@ class _JadwalPageState extends State<JadwalPage> {
                                                         : () async {
                                                             if (tombolLabel ==
                                                                 "Minum") {
-                                                              // 🔹 UBAH BAGIAN INI: Arahkan ke Halaman Kamera AI
-                                                              // Kita kirimkan doc.reference agar halaman kamera bisa
-                                                              // update status setelah AI mendeteksi obat diminum.
                                                               Navigator.push(
                                                                 context,
                                                                 MaterialPageRoute(
@@ -773,19 +695,12 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                 ),
                                                               );
                                                             } else {
-                                                              final data = doc
-                                                                      .data()
-                                                                  as Map<String,
-                                                                      dynamic>;
-
-                                                              // 🔹 TAMBAHAN BARU: Ambil waktu asli dia minum dari Firestore
                                                               String
                                                                   waktuAktual =
-                                                                  waktuMinum; // Default ke jadwal awal
+                                                                  waktuMinum;
                                                               if (data[
                                                                       'waktu_verifikasi'] !=
                                                                   null) {
-                                                                // Ubah format Timestamp dari Firebase jadi teks Jam:Menit
                                                                 DateTime
                                                                     verifDate =
                                                                     (data['waktu_verifikasi']
@@ -797,8 +712,8 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                         .format(
                                                                             verifDate);
                                                               }
-                                                              // print("ISI RIWAYAT TUNDA: ${data['riwayat_tunda']}");
 
+                                                              // 🔹 OPER PATH DOKUMEN UTAMA KE ROUTER
                                                               context.pushNamed(
                                                                 'detail-riwayat',
                                                                 extra: {
@@ -810,25 +725,18 @@ class _JadwalPageState extends State<JadwalPage> {
                                                                   'status':
                                                                       status,
                                                                   'waktu':
-                                                                      waktuMinum, // Ini jadwal asli (misal 13:00)
+                                                                      waktuMinum,
                                                                   'tanggal':
                                                                       tanggal,
-
-                                                                  'buktiFoto': data[
-                                                                      'bukti_foto'],
-                                                                  'verifikasiAi':
-                                                                      data[
-                                                                          'verifikasi_ai'],
-                                                                  'skorAi': data[
-                                                                      'ai_confidence_score'],
-
-                                                                  // 🔹 KIRIM WAKTU AKTUAL KE ROUTER
                                                                   'waktuVerifikasi':
                                                                       waktuAktual,
-
                                                                   'riwayatTunda':
                                                                       data['riwayat_tunda'] ??
                                                                           [],
+                                                                  // 👇 Kunci optimasi baru: kirim path dokumennya
+                                                                  'jadwalDocPath':
+                                                                      doc.reference
+                                                                          .path,
                                                                 },
                                                               );
                                                             }

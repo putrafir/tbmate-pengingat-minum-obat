@@ -2,27 +2,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:tbmate_kmipn/auth/signup_page.dart';
 import 'package:tbmate_kmipn/auth/login_page.dart';
-import 'package:tbmate_kmipn/pages/registration/beratbadan.dart';
+import 'package:tbmate_kmipn/auth/auth_page.dart';
 import 'package:tbmate_kmipn/pages/pasien/camera_ingestion_page.dart';
 import 'package:tbmate_kmipn/pages/pasien/detail_riwayat.dart';
-import 'package:tbmate_kmipn/pages/registration/input_role.dart';
-import 'package:tbmate_kmipn/pages/registration/inputname.dart';
-import 'package:tbmate_kmipn/pages/registration/inputusia.dart';
 import 'package:tbmate_kmipn/pages/pasien/main_screen.dart';
-import 'package:tbmate_kmipn/pages/screen1.dart';
-import 'package:tbmate_kmipn/pages/registration/settime.dart';
+import 'package:tbmate_kmipn/pages/screen1.dart'; // OnboardingScreen
 import 'package:tbmate_kmipn/pages/splash_screen.dart';
-// import 'package:tbmate_kmipn/pages/telpscreen.dart';
-import 'package:tbmate_kmipn/auth/auth_page.dart';
-import 'package:tbmate_kmipn/pages/registration/welcome_page.dart';
 import 'package:tbmate_kmipn/pages/pmo/pmo_main_screen.dart';
 import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
 import 'package:tbmate_kmipn/main.dart';
 import 'package:tbmate_kmipn/pages/pmo/tambah_pasien.dart';
 
-// coba
+// 🔹 IMPORT WIZARD BARU KITA
+import 'package:tbmate_kmipn/pages/registration/registration_wizard.dart';
+
 final GoRouter appRouter = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
@@ -70,61 +66,16 @@ final GoRouter appRouter = GoRouter(
           path: '/screen1',
           name: 'screen1',
           builder: (context, state) => const OnboardingScreen()),
-      // GoRoute(
-      //   path: '/input-phone',
-      //   name: 'input-phone',
-      //   pageBuilder: (context, state) => CustomTransitionPage(
-      //     key: state.pageKey,
-      //     child: const InputPhoneScreen(),
-      //     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      //       const begin = Offset(1.0, 0.0); // dari kanan
-      //       const end = Offset.zero;
-      //       final tween = Tween(begin: begin, end: end)
-      //           .chain(CurveTween(curve: Curves.easeInOut));
-      //       return SlideTransition(
-      //           position: animation.drive(tween), child: child);
-      //     },
-      //   ),
-      // ),
+
+      // ==============================================================
+      // 🔥 SATU RUTE UNTUK MENGGANTIKAN 6 RUTE PENDAFTARAN LAMA
+      // ==============================================================
       GoRoute(
-        path: '/input-name',
-        name: 'input-name',
-        builder: (context, state) => const NameInputScreen(),
+        path: '/registration-wizard',
+        name: 'registration-wizard',
+        builder: (context, state) => const RegistrationWizard(),
       ),
-      GoRoute(
-        path: '/input-role',
-        name: 'input-role',
-        builder: (context, state) => const RoleGroupSelectionScreen(),
-      ),
-      GoRoute(
-        path: '/welcome',
-        name: 'welcome',
-        builder: (context, state) {
-          final data = state.extra as Map<String, String>;
-          final nickName = data['nickName'] ?? '';
-          return WelcomePage(nickName: nickName);
-        },
-      ),
-      GoRoute(
-          path: '/input-usia',
-          name: 'input-usia',
-          builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>?;
-            return AgeGroupSelectionScreen(
-              patientUid: extra?['patientUid'],
-              isFromPMO: extra?['isFromPMO'] ?? false,
-            );
-          }),
-      GoRoute(
-          path: '/input-weight',
-          name: 'input-weight',
-          builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>?;
-            return WeightSelectionScreen(
-              patientUid: extra?['patientUid'],
-              isFromPMO: extra?['isFromPMO'] ?? false,
-            );
-          }),
+
       GoRoute(
         path: '/main-screen',
         name: 'main-screen',
@@ -142,16 +93,6 @@ final GoRouter appRouter = GoRouter(
           name: 'pmo-main-screen',
           builder: (context, state) {
             return const PmoMainScreen();
-          }),
-      GoRoute(
-          path: '/set-time',
-          name: 'set-time',
-          builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>?;
-            return SetWaktu(
-              patientUid: extra?['patientUid'],
-              isFromPMO: extra?['isFromPMO'] ?? false,
-            );
           }),
       GoRoute(
         path: '/akun',
@@ -179,11 +120,12 @@ final GoRouter appRouter = GoRouter(
             status: data['status'],
             waktu: data['waktu'],
             tanggal: data['tanggal'],
-            buktiFoto: data['buktiFoto'],
             verifikasiAi: data['verifikasiAi'],
             skorAi: data['skorAi']?.toDouble(),
             waktuVerifikasi: data['waktuVerifikasi'],
             riwayatTunda: data['riwayatTunda'] ?? [],
+            // 👇 Ganti parameter buktiFoto lama dengan path ini
+            jadwalDocPath: data['jadwalDocPath'],
           );
         },
       ),

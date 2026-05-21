@@ -23,8 +23,6 @@ class _LoginpageState extends State<Loginpage> {
 
   bool isLoading = false;
 
-  // 🔹 Bikin fungsi khusus buat minta izin
-
   Future<void> _login() async {
     setState(() => isLoading = true);
 
@@ -40,7 +38,7 @@ class _LoginpageState extends State<Loginpage> {
         final usersRef = FirebaseFirestore.instance.collection('users');
         final doc = await usersRef.doc(user!.uid).get();
 
-        // 🔹 Jika user belum pernah tersimpan di Firestore, tambahkan data default
+        // Jika user belum pernah tersimpan di Firestore, tambahkan data default
         if (!doc.exists) {
           final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
           await usersRef.doc(user.uid).set({
@@ -54,29 +52,17 @@ class _LoginpageState extends State<Loginpage> {
           });
         }
 
-        // 🔹 Ambil data user terbaru
+        // Ambil data user terbaru
         final userData = (await usersRef.doc(user.uid).get()).data();
         final role = userData?['role'];
 
-        // 🔹 Tentukan navigasi berdasarkan role & kelengkapan data
+        // 🔹 LOGIKA NAVIGASI BARU YANG SUPER BERSIH
         if (role == null) {
-          context.go('/input-role');
+          context.go('/registration-wizard');
         } else if (role.toString().toUpperCase() == 'PMO') {
-          if (userData?['nickName'] == null || userData?['nickName'] == '') {
-            context.go('/input-name');
-          } else {
-            context.go('/pmo-main-screen');
-          }
-        } else if (role.toString().toUpperCase() == 'PASIEN') {
-          if (userData?['nickName'] == null || userData?['nickName'] == '') {
-            context.go('/input-name');
-          } else if (userData?['ageGroup'] == null) {
-            context.go('/input-usia');
-          } else if (userData?['weight'] == null) {
-            context.go('/input-weight');
-          } else {
-            context.go('/main-screen');
-          }
+          context.go('/pmo-main-screen');
+        } else {
+          context.go('/main-screen');
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,7 +91,7 @@ class _LoginpageState extends State<Loginpage> {
         final user = userCredential.user;
         final usersRef = FirebaseFirestore.instance.collection('users');
 
-        // 🔹 Cek apakah user sudah ada di Firestore
+        // Cek apakah user sudah ada di Firestore
         final doc = await usersRef.doc(user!.uid).get();
 
         if (!doc.exists) {
@@ -121,39 +107,24 @@ class _LoginpageState extends State<Loginpage> {
           });
         }
 
-        // 🔹 Ambil data user
+        // Ambil data user
         final userData = (await usersRef.doc(user.uid).get()).data();
         final role = userData?['role'];
 
-        // 🔹 WAJIB CEK INI: Pastikan widget masih aktif setelah proses await selesai
         if (!mounted) return;
-
         setState(() => isLoading = false);
 
-        // 🔹 Pindahkan SnackBar ke SINI (SEBELUM context.go)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Berhasil login dengan Google!")),
         );
 
-        // 🔹 Tentukan navigasi
+        // 🔹 LOGIKA NAVIGASI BARU YANG SUPER BERSIH
         if (role == null) {
-          context.go('/input-role');
+          context.go('/registration-wizard');
         } else if (role.toString().toUpperCase() == 'PMO') {
-          if (userData?['nickName'] == null || userData?['nickName'] == '') {
-            context.go('/input-name');
-          } else {
-            context.go('/pmo-main-screen');
-          }
-        } else if (role.toString().toUpperCase() == 'PASIEN') {
-          if (userData?['nickName'] == null || userData?['nickName'] == '') {
-            context.go('/input-name');
-          } else if (userData?['ageGroup'] == null) {
-            context.go('/input-usia');
-          } else if (userData?['weight'] == null) {
-            context.go('/input-weight');
-          } else {
-            context.go('/main-screen');
-          }
+          context.go('/pmo-main-screen');
+        } else {
+          context.go('/main-screen');
         }
       } else {
         if (!mounted) return;
@@ -164,7 +135,6 @@ class _LoginpageState extends State<Loginpage> {
         );
       }
     } catch (e) {
-      // 🔹 Tangkap semua error Firebase di sini
       if (!mounted) return;
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(

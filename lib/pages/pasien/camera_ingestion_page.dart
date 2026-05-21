@@ -202,9 +202,6 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
     }
   }
 
-  // ==========================================
-  // --- FUNGSI UPLOAD KE FIREBASE ---
-  // ==========================================
   Future<void> _uploadToPuskesmas() async {
     try {
       setState(() {
@@ -212,51 +209,90 @@ class _CameraIngestionPageState extends State<CameraIngestionPage> {
         _instruction = "Menyandi gambar & Mengirim ke Database...";
       });
 
-      // 1. Ubah Foto Obat jadi Base64 (Teks)
+      // 1. Ubah Foto-Foto menjadi Base64 Teks
       String base64Obat = "";
       if (_fotoObat != null) {
         base64Obat = await _imageToBase64(_fotoObat!);
       }
 
-      // 2. Ubah Foto Burst Minum jadi List Base64
       List<String> base64MinumBurst = [];
       for (XFile pic in _fotoMinumBurst) {
         String b64 = await _imageToBase64(pic);
         base64MinumBurst.add(b64);
       }
 
-      // 3. Ubah Foto Mulut Kosong jadi Base64
       String base64Mulut = "";
       if (_fotoMulutKosong != null) {
         base64Mulut = await _imageToBase64(_fotoMulutKosong!);
       }
 
-      // 4. LANGSUNG SIMPAN KE FIRESTORE (Sebagai Teks Panjang)
-      await widget.jadwalDocRef.update({
+      // 2. Siapkan Referensi Dokumen
+      final userRef = widget.jadwalDocRef.parent.parent!;
+
+      // 🚨 FOKUS OPTIMASI BARU: Pisahkan Base64 ke dalam sub-koleksi 'bukti'
+      final buktiRef =
+          widget.jadwalDocRef.collection('bukti').doc('foto_verifikasi');
+
+      // 3. Ambil data fase saat ini untuk perhitungan stats kepatuhan
+      final jadwalSnap = await widget.jadwalDocRef.get();
+      final fase = jadwalSnap.data() != null
+          ? (jadwalSnap.data() as Map<String, dynamic>)['fase']
+          : 'Intensif';
+
+      final userSnap = await userRef.get();
+      final userData = userSnap.data() as Map<String, dynamic>?;
+      final int diminumIntensifSekarang = userData?['diminumIntensif'] ?? 0;
+      final int totalIntensif = userData?['totalIntensif'] ?? 56;
+
+      // 4. Mulai Bungkus dalam Batch Write
+      final batch = FirebaseFirestore.instance.batch();
+
+      // AKSES 1: Update metadata dokumen utama jadwal_obat (TANPA teks Base64)
+      batch.update(widget.jadwalDocRef, {
         'status': 'Sudah diminum',
         'waktu_verifikasi': FieldValue.serverTimestamp(),
-        'bukti_foto': {
-          'obat': base64Obat, // 👈 Disimpan sebagai teks Base64
-          'proses_minum': base64MinumBurst, // 👈 List teks Base64
-          'mulut_kosong': base64Mulut, // 👈 Teks Base64
-        },
         'ai_confidence_score': _pillConfidenceScore,
         'verifikasi_ai': _pillConfidenceScore > 0.7 ? 'Valid' : 'Butuh Review',
+        'has_bukti':
+            true, // Indikator penanda bagi UI/Dashboard bahwa dokumen ini memiliki bukti foto
       });
+
+      // AKSES 2: Simpan payload teks raksasa Base64 ke dalam sub-koleksi terisolasi
+      batch.set(buktiRef, {
+        'obat': base64Obat,
+        'proses_minum': base64MinumBurst,
+        'mulut_kosong': base64Mulut,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // AKSES 3: Tambahkan angka statistik kepatuhan ke dokumen profil induk
+      Map<String, dynamic> userUpdateData = {};
+      if (fase == 'Lanjutan') {
+        userUpdateData['diminumLanjutan'] = FieldValue.increment(1);
+      } else {
+        userUpdateData['diminumIntensif'] = FieldValue.increment(1);
+        if (diminumIntensifSekarang + 1 >= totalIntensif) {
+          userUpdateData['currentPhase'] = 'Lanjutan';
+        }
+      }
+      batch.update(userRef, userUpdateData);
+
+      // 5. TEMBAKKAN SEMUANYA SEKALIGUS
+      await batch.commit();
 
       setState(() => _currentState = VdotState.success);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("✅ Berhasil! Data terkirim tanpa Storage.",
+              content: Text("✅ Berhasil! Foto terisolasi di sub-koleksi.",
                   style: TextStyle(color: Colors.white)),
               backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      debugPrint("Gagal Upload Base64: $e");
+      debugPrint("Gagal Upload Sub-Koleksi: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("❌ Gagal mengirim data: $e")),
