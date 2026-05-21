@@ -105,31 +105,16 @@ class _AuthPageState extends State<AuthPage> with WidgetsBindingObserver {
         );
 
         // Tentukan halaman tujuan berdasarkan role dan kelengkapan data
+        // 🔹 Tentukan navigasi berdasarkan arsitektur Wizard baru
         if (role == null) {
-          context.go('/input-role');
-          return;
-        } else if (role?.toString().toUpperCase() == 'PMO') {
-          if (userData?['nickName'] == null || userData?['nickName'] == '') {
-            context.go('/input-name');
-            return;
-          } else {
-            context.go('/pmo-main-screen');
-            return;
-          }
-        } else if (role?.toString().toUpperCase() == 'PASIEN') {
-          if (userData?['nickName'] == null || userData?['nickName'] == '') {
-            context.go('/input-name');
-            return;
-          } else if (userData?['ageGroup'] == null) {
-            context.go('/input-usia');
-            return;
-          } else if (userData?['weight'] == null) {
-            context.go('/input-weight');
-            return;
-          } else {
-            context.go('/main-screen');
-            return;
-          }
+          // Jika role null, berarti belum menyelesaikan Wizard pendaftaran
+          context.go('/registration-wizard');
+        } else if (role.toString().toUpperCase() == 'PMO') {
+          // Jika sudah lengkap dan dia PMO
+          context.go('/pmo-main-screen');
+        } else {
+          // Jika sudah lengkap dan dia Pasien
+          context.go('/main-screen');
         }
       } else {
         if (!mounted) return;

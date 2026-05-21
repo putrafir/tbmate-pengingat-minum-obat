@@ -62,7 +62,7 @@ class _SignUpState extends State<SignUp> {
         final user = userCredential.user;
         final usersRef = FirebaseFirestore.instance.collection('users');
 
-        // 🔹 SIMPAN DATA KE FIRESTORE
+        // SIMPAN DATA KE FIRESTORE
         final doc = await usersRef.doc(user!.uid).get();
         if (!doc.exists) {
           final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
@@ -77,14 +77,14 @@ class _SignUpState extends State<SignUp> {
           });
         }
 
-        // 🔹 WAJIB CEK MOUNTED SETELAH AWAIT
         if (!mounted) return;
         setState(() => isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Berhasil membuat akun!")),
         );
-        context.go('/input-role');
+        // 🔹 DIARAHKAN KE WIZARD
+        context.go('/registration-wizard');
       } else {
         if (!mounted) return;
         setState(() => isLoading = false);
@@ -102,7 +102,6 @@ class _SignUpState extends State<SignUp> {
     }
   }
 
-  // 🔹 METHOD BARU UNTUK GOOGLE SIGN UP
   Future<void> _signUpWithGoogle() async {
     setState(() => isLoading = true);
 
@@ -113,7 +112,7 @@ class _SignUpState extends State<SignUp> {
         final user = userCredential.user;
         final usersRef = FirebaseFirestore.instance.collection('users');
 
-        // 🔹 SIMPAN DATA KE FIRESTORE
+        // SIMPAN DATA KE FIRESTORE
         final doc = await usersRef.doc(user!.uid).get();
         if (!doc.exists) {
           final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
@@ -134,7 +133,8 @@ class _SignUpState extends State<SignUp> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Berhasil sign up dengan Google!")),
         );
-        context.go('/input-role');
+        // 🔹 DIARAHKAN KE WIZARD
+        context.go('/registration-wizard');
       } else {
         if (!mounted) return;
         setState(() => isLoading = false);

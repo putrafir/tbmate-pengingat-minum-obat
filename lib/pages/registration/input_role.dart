@@ -1,53 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:tbmate_kmipn/color.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:go_router/go_router.dart';
 
-class RoleGroupSelectionScreen extends StatefulWidget {
-  const RoleGroupSelectionScreen({super.key});
+class RoleStep extends StatefulWidget {
+  final Function(String) onNext;
+  const RoleStep({super.key, required this.onNext});
 
   @override
-  State<RoleGroupSelectionScreen> createState() =>
-      _RoleGroupSelectionScreenState();
+  State<RoleStep> createState() => _RoleStepState();
 }
 
-class _RoleGroupSelectionScreenState extends State<RoleGroupSelectionScreen> {
+class _RoleStepState extends State<RoleStep> {
   String? _selectedRoleGroup;
-  bool _isSaving = false;
-
-  // --- Simpan usia ke Firestore ---
-  Future<void> _saveAgeGroupToFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw Exception("User belum login");
-    }
-
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-      'role': _selectedRoleGroup,
-    }, SetOptions(merge: true));
-  }
-
-  // --- Aksi tombol lanjut ---
-  Future<void> _handleNext() async {
-    if (_selectedRoleGroup == null) return;
-
-    setState(() => _isSaving = true);
-
-    try {
-      await _saveAgeGroupToFirestore();
-
-      if (mounted) {
-        context.go('/input-name');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal menyimpan data: $e")),
-      );
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +108,7 @@ class _RoleGroupSelectionScreenState extends State<RoleGroupSelectionScreen> {
                             padding: const EdgeInsets.all(5),
                             child: Row(
                               children: [
-                                // Anak-anak
+                                // PMO
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
@@ -177,7 +140,7 @@ class _RoleGroupSelectionScreenState extends State<RoleGroupSelectionScreen> {
                                   ),
                                 ),
 
-                                // Dewasa
+                                // Pasien
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
@@ -222,9 +185,9 @@ class _RoleGroupSelectionScreenState extends State<RoleGroupSelectionScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _isSaving || _selectedRoleGroup == null
+                        onPressed: _selectedRoleGroup == null
                             ? null
-                            : _handleNext,
+                            : () => widget.onNext(_selectedRoleGroup!),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF75CDE7),
                           disabledBackgroundColor: const Color(0xFFB6E7F3),
@@ -233,17 +196,14 @@ class _RoleGroupSelectionScreenState extends State<RoleGroupSelectionScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: _isSaving
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
-                                "Lanjut",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                        child: const Text(
+                          "Lanjut",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
                   ],

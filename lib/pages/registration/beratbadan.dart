@@ -1,30 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tbmate_kmipn/color.dart';
-import 'package:tbmate_kmipn/pages/registration/inputusia.dart';
-import 'package:go_router/go_router.dart';
 
-class WeightSelectionScreen extends StatefulWidget {
-  final String? patientUid;
+class WeightStep extends StatefulWidget {
   final bool isFromPMO;
+  final Function(int) onNext;
 
-  const WeightSelectionScreen({
-    super.key,
-    this.patientUid,
-    this.isFromPMO = false,
-  });
+  const WeightStep({super.key, this.isFromPMO = false, required this.onNext});
 
   @override
-  State<WeightSelectionScreen> createState() => _WeightSelectionScreenState();
+  State<WeightStep> createState() => _WeightStepState();
 }
 
-class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
+class _WeightStepState extends State<WeightStep> {
   final int minWeight = 20;
   final int maxWeight = 150;
   late int _selectedWeight;
   late ScrollController _scrollController;
-  bool _isSaving = false;
 
   @override
   void initState() {
@@ -70,51 +61,6 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
     );
   }
 
-  Future<void> _saveWeightToFirestore() async {
-    setState(() => _isSaving = true);
-
-    try {
-      final targetUid =
-          widget.patientUid ?? FirebaseAuth.instance.currentUser?.uid;
-
-      if (targetUid != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(targetUid)
-            .set({
-          'weight': _selectedWeight,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text("✅ Berat badan $_selectedWeight kg disimpan")),
-          );
-
-          context.push(
-            '/set-time',
-            extra: {
-              'patientUid': widget.patientUid,
-              'isFromPMO': widget.isFromPMO,
-            },
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User belum login")),
-        );
-      }
-    } catch (e) {
-      debugPrint("❌ Gagal menyimpan berat badan: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal menyimpan data")),
-      );
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -137,27 +83,9 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 28),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) =>
-                        //         const AgeGroupSelectionScreen(),
-                        //   ),
-                        // );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(
+                    height:
+                        50), // Penyesuaian karena back button ditarik ke parent
                 Image.asset(
                   'assets/images/icon2.png',
                   height: 220,
@@ -168,7 +96,7 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                       ? "Masukkan berat badan pasien untuk menentukan dosis pengobatan"
                       : "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas buatmu",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -194,12 +122,12 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                   Text(
-                      widget.isFromPMO
-                      ? "Berat badan pasien membantu menentukan program pengobatan TB yang tepat dengan obat FDC (Fixed-Dose Combined)"
-                      : "Berat badan membantu  TBMATE menyesuaikan dan pemantauan kesehatanmu",
+                  Text(
+                    widget.isFromPMO
+                        ? "Berat badan pasien membantu menentukan program pengobatan TB yang tepat dengan obat FDC (Fixed-Dose Combined)"
+                        : "Berat badan membantu  TBMATE menyesuaikan dan pemantauan kesehatanmu",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.black45,
                       fontSize: 12,
                       height: 1.5,
@@ -279,7 +207,7 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
+                                  color: Colors.black.withOpacity(0.15),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -320,7 +248,7 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                     width: double.infinity,
                     height: 40,
                     child: ElevatedButton(
-                      onPressed: _isSaving ? null : _saveWeightToFirestore,
+                      onPressed: () => widget.onNext(_selectedWeight),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF8ED8F8),
                         foregroundColor: Colors.white,
@@ -328,16 +256,13 @@ class _WeightSelectionScreenState extends State<WeightSelectionScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: _isSaving
-                          ? const CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2)
-                          : const Text(
-                              "Selesai",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      child: const Text(
+                        "Selesai",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],

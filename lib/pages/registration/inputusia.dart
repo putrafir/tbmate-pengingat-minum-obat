@@ -1,72 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:tbmate_kmipn/color.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:go_router/go_router.dart';
 
-class AgeGroupSelectionScreen extends StatefulWidget {
-  final String? patientUid;
+class AgeStep extends StatefulWidget {
   final bool isFromPMO;
+  final Function(String) onNext;
 
-  const AgeGroupSelectionScreen({
-    super.key,
-    this.patientUid,
-    this.isFromPMO = false,
-  });
+  const AgeStep({super.key, this.isFromPMO = false, required this.onNext});
 
   @override
-  State<AgeGroupSelectionScreen> createState() =>
-      _AgeGroupSelectionScreenState();
+  State<AgeStep> createState() => _AgeStepState();
 }
 
-class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
+class _AgeStepState extends State<AgeStep> {
   String? _selectedAgeGroup;
-  bool _isSaving = false;
-
-  // --- Simpan usia ke Firestore ---
-  Future<void> _saveAgeGroupToFirestore() async {
-  final targetUid =
-    widget.patientUid ??
-    FirebaseAuth.instance.currentUser?.uid;
-    if (targetUid == null) {
-  throw Exception("User tidak ditemukan");
-}
-
-    await FirebaseFirestore.instance
-    .collection('users')
-    .doc(targetUid)
-    .set({
-      'ageGroup': _selectedAgeGroup,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
-  // --- Aksi tombol lanjut ---
-  Future<void> _handleNext() async {
-    if (_selectedAgeGroup == null) return;
-
-    setState(() => _isSaving = true);
-
-    try {
-      await _saveAgeGroupToFirestore();
-
-      if (mounted) {
-        context.push(
-          '/input-weight',
-          extra: {
-            'patientUid': widget.patientUid,
-            'isFromPMO': widget.isFromPMO,
-          },
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal menyimpan data: $e")),
-      );
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,14 +33,14 @@ class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
                     height: 150,
                   ),
                   const SizedBox(height: 20),
-                   Padding(
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Text(
-                     widget.isFromPMO
-    ? "Pilih kelompok usia pasien"
-    : "Setiap usia punya kebutuhan berbeda. Kamu termasuk yang mana?",
+                      widget.isFromPMO
+                          ? "Pilih kelompok usia pasien"
+                          : "Setiap usia punya kebutuhan berbeda. Kamu termasuk yang mana?",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -244,9 +190,9 @@ class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _isSaving || _selectedAgeGroup == null
+                        onPressed: _selectedAgeGroup == null
                             ? null
-                            : _handleNext,
+                            : () => widget.onNext(_selectedAgeGroup!),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF75CDE7),
                           disabledBackgroundColor: const Color(0xFFB6E7F3),
@@ -255,17 +201,14 @@ class _AgeGroupSelectionScreenState extends State<AgeGroupSelectionScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: _isSaving
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
-                                "Lanjut",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                        child: const Text(
+                          "Lanjut",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
                   ],

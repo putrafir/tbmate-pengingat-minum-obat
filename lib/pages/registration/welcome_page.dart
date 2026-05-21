@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-// Asumsi ini adalah file yang berisi kPrimaryGreen dan kBackgroundColor
 import 'package:tbmate_kmipn/color.dart';
-import 'package:go_router/go_router.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomeStep extends StatelessWidget {
   final String nickName;
+  final VoidCallback onNext; // 🔹 Callback ke Wizard
 
-  const WelcomePage({super.key, required this.nickName});
+  const WelcomeStep({
+    super.key,
+    required this.nickName,
+    required this.onNext,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kPrimaryGreen,
-      body: SafeArea(
+    // Kita gunakan Container karena Scaffold sudah di-handle oleh RegistrationWizard
+    return Container(
+      color: kPrimaryGreen,
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40.0),
           child: Column(
@@ -21,7 +25,6 @@ class WelcomePage extends StatelessWidget {
               const SizedBox(height: 100),
               Image.asset(
                 'assets/images/Group 20.png',
-                
                 height: 200,
                 fit: BoxFit.contain,
               ),
@@ -53,9 +56,8 @@ class WelcomePage extends StatelessWidget {
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: () {
-                      context.go('/input-usia');
-                    },
+                    // 🔹 PANGGIL CALLBACK DI SINI (Gantikan context.go)
+                    onPressed: onNext,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kBackgroundColor,
                       shape: RoundedRectangleBorder(
