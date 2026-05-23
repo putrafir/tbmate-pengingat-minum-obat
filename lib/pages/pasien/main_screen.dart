@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tbmate_kmipn/color.dart';
 import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/akunpagenew.dart';
 import 'package:tbmate_kmipn/pages/pasien/jadwal_page.dart';
 
 
@@ -149,7 +150,7 @@ class _MainScreenState extends State<MainScreen> {
         docId: widget.docId,
       ),
       // RiwayatPage(),
-      AkunPage(
+      AkunPageRev(
         fullName: fullName ?? "Pengguna",
         uniqueId: uniqueId!,
         role: role!,
