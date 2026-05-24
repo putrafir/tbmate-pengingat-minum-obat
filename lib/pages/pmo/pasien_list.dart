@@ -3,8 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
 import 'package:tbmate_kmipn/pages/pmo/pmo_main_screen.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/akunpagenew.dart';
 
 class PasienList extends StatefulWidget {
   const PasienList({super.key});
@@ -178,7 +179,7 @@ class _PasienListState extends State<PasienList> {
                               MaterialPageRoute(
                                 builder: (_) => PmoMainScreen(
                                   initialIndex: 1,
-                                  customPage: AkunPage(
+                                  customPage: AkunPageRev(
                                     fullName: fullName,
                                     uniqueId: data['uniqueId'] ?? '',
                                     role: data['role'] ?? '',

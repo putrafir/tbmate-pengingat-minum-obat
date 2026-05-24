@@ -15,6 +15,7 @@ import 'package:tbmate_kmipn/pages/pmo/pmo_main_screen.dart';
 import 'package:tbmate_kmipn/pages/pasien/profile/akun_page.dart';
 import 'package:tbmate_kmipn/main.dart';
 import 'package:tbmate_kmipn/pages/pmo/tambah_pasien.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/akunpagenew.dart';
 
 // 🔹 IMPORT WIZARD BARU KITA
 import 'package:tbmate_kmipn/pages/registration/registration_wizard.dart';
@@ -99,7 +100,7 @@ final GoRouter appRouter = GoRouter(
         name: 'akun',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          return AkunPage(
+          return AkunPageRev(
             fullName: extra?['fullName'] ?? '',
             uniqueId: extra?['uniqueId'] ?? '',
             role: extra?['role'] ?? '',
