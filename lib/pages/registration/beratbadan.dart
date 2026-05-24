@@ -21,6 +21,7 @@ class _WeightStepState extends State<WeightStep> {
   void initState() {
     super.initState();
     _selectedWeight = 50;
+    // Mengatur posisi awal scroll sesuai berat badan default
     final initialOffset = (_selectedWeight - minWeight) * 40.0;
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
     _scrollController.addListener(_onScroll);
@@ -34,8 +35,11 @@ class _WeightStepState extends State<WeightStep> {
 
   void _onScroll() {
     const double itemHeight = 40.0;
+    // Menghitung index item yang berada di tengah berdasarkan scroll
     final int middleIndex = (_scrollController.offset / itemHeight).round();
     final newWeight = minWeight + middleIndex + 2;
+
+    // Perbarui state hanya jika berat badan berubah
     if (newWeight >= minWeight &&
         newWeight <= maxWeight &&
         newWeight != _selectedWeight) {
@@ -53,8 +57,9 @@ class _WeightStepState extends State<WeightStep> {
         duration: const Duration(milliseconds: 200),
         style: TextStyle(
           fontSize: isSelected ? 24 : 18,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.white : Colors.black54,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          // Transparan agar teks yang di belakang kotak hijau tidak bertabrakan
+          color: isSelected ? Colors.transparent : Colors.black45,
         ),
         child: Text(weight.toString()),
       ),
@@ -63,104 +68,119 @@ class _WeightStepState extends State<WeightStep> {
 
   @override
   Widget build(BuildContext context) {
-    final double screenHeight = MediaQuery.of(context).size.height;
-    const double headerFraction = 0.4;
-    final double headerHeight = screenHeight * headerFraction;
     final itemCount = (maxWeight - minWeight + 1) + 4;
 
     return Scaffold(
       backgroundColor: kPrimaryGreen,
-      body: Column(
-        children: [
-          // ===== HEADER HIJAU =====
-          Container(
-            height: headerHeight,
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
-            decoration: const BoxDecoration(
-              color: kPrimaryGreen,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(
-                    height:
-                        50), // Penyesuaian karena back button ditarik ke parent
-                Image.asset(
-                  'assets/images/icon2.png',
-                  height: 220,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.isFromPMO
-                      ? "Masukkan berat badan pasien untuk menentukan dosis pengobatan"
-                      : "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas buatmu",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ===== BODY PUTIH =====
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(50),
-                  topRight: Radius.circular(50),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // ==========================================
+            // LAYER ATAS: HEADER & ILUSTRASI (FLEKSIBEL)
+            // ==========================================
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 30),
+                    Image.asset(
+                      'assets/images/icon2.png',
+                      height: 180, // Sedikit disesuaikan agar tidak over-size
+                    ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Text(
+                        widget.isFromPMO
+                            ? "Masukkan berat badan pasien untuk dosis pengobatan"
+                            : "Yuk isi berat badanmu, biar TBMATE bisa jadi teman sehat yang pas!",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20, // Sedikit dinaikkan dari 18
+                          fontWeight: FontWeight.w700,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(32, 25, 32, 20),
+            ),
+
+            // ==========================================
+            // LAYER BAWAH: KOTAK PUTIH (PADAT / HUG CONTENT)
+            // ==========================================
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: kBackgroundColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40),
+                  topRight: Radius.circular(40),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -5),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(32, 36, 32, 24),
               child: Column(
+                mainAxisSize: MainAxisSize.min, // Hug content
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     widget.isFromPMO
-                        ? "Berat badan pasien membantu menentukan program pengobatan TB yang tepat dengan obat FDC (Fixed-Dose Combined)"
-                        : "Berat badan membantu  TBMATE menyesuaikan dan pemantauan kesehatanmu",
+                        ? "Berat badan membantu menentukan program pengobatan TB (Kombinasi Dosis Tetap)."
+                        : "Berat badan membantu TBMate menyesuaikan pemantauan kesehatanmu.",
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: Colors.black45,
-                      fontSize: 12,
+                      color: kSubtitleColor,
+                      fontSize: 13,
                       height: 1.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 24),
+
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Pilih Berat Badan",
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                  // ===== PILIH BERAT =====
+                  // ==========================================
+                  // WIDGET SCROLL BERAT BADAN
+                  // ==========================================
                   Container(
-                    height: 200,
+                    height: 220, // Diperbesar sedikit agar scroll lebih enak
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(
+                          0xFFF8FFF3), // Disamakan dengan form sebelumnya
+                      borderRadius: BorderRadius.circular(20), // Konsisten 20
                       border: Border.all(
                         color: const Color(0xFFA6D9E8),
-                        width: 2,
+                        width: 1.5,
                       ),
                     ),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
+                        // List angka yang bisa di-scroll
                         NotificationListener<ScrollEndNotification>(
                           onNotification: (notification) {
                             if (notification.metrics.axis == Axis.vertical) {
@@ -184,9 +204,11 @@ class _WeightStepState extends State<WeightStep> {
                           child: ListView.builder(
                             controller: _scrollController,
                             itemCount: itemCount,
-                            itemExtent: 40.0,
+                            itemExtent:
+                                40.0, // Harus konsisten dengan itemHeight
                             physics: const BouncingScrollPhysics(),
                             itemBuilder: (context, index) {
+                              // Item kosong di awal dan akhir agar angka pertama/terakhir bisa ke tengah
                               if (index < 2 || index >= itemCount - 2) {
                                 return const SizedBox(height: 40);
                               }
@@ -196,24 +218,23 @@ class _WeightStepState extends State<WeightStep> {
                           ),
                         ),
 
-                        // ===== HIGHLIGHT =====
-                        Positioned(
-                          left: 10,
-                          right: 10,
+                        // Highlight Hijau di tengah (Penunjuk Angka)
+                        // IgnorePointer agar tidak mengganggu scroll ListView di bawahnya
+                        IgnorePointer(
                           child: Container(
-                            height: 55,
+                            height: 60, // Sedikit lebih besar
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
-                              color: kPrimaryGreen,
+                              color: const Color(0xFF2E7D32),
                               borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
+                              boxShadow: const [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                                  color: Colors.black12,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             alignment: Alignment.center,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -221,18 +242,18 @@ class _WeightStepState extends State<WeightStep> {
                                 Text(
                                   _selectedWeight.toString(),
                                   style: const TextStyle(
-                                    fontSize: 24,
+                                    fontSize: 26,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 4),
                                 const Text(
                                   "kg",
                                   style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white70,
                                   ),
                                 ),
                               ],
@@ -243,33 +264,44 @@ class _WeightStepState extends State<WeightStep> {
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 32),
+
+                  // ==========================================
+                  // TOMBOL SELESAI
+                  // ==========================================
                   SizedBox(
                     width: double.infinity,
-                    height: 40,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: () => widget.onNext(_selectedWeight),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8ED8F8),
-                        foregroundColor: Colors.white,
+                        backgroundColor: const Color(
+                            0xFF75CDE7), // Serasi dengan tombol wizard lain
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
+                        elevation: 0,
                       ),
                       child: const Text(
                         "Selesai",
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
                   ),
+
+                  const SafeArea(
+                    top: false,
+                    child: SizedBox(height: 10),
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

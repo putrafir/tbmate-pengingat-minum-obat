@@ -13,7 +13,7 @@ class _NameStepState extends State<NameStep> {
   final TextEditingController nickNameController = TextEditingController();
   OverlayEntry? _overlayEntry;
 
-  // --- Overlay Error ---
+  // --- Overlay Error (Tetap sama, ini sudah bagus!) ---
   void _showError(String message) {
     _removeOverlay();
 
@@ -60,7 +60,7 @@ class _NameStepState extends State<NameStep> {
     );
 
     Overlay.of(context).insert(_overlayEntry!);
-    Future.delayed(const Duration(seconds: 2), () => _removeOverlay());
+    Future.delayed(const Duration(seconds: 3), () => _removeOverlay());
   }
 
   void _removeOverlay() {
@@ -91,11 +91,13 @@ class _NameStepState extends State<NameStep> {
     required TextEditingController controller,
   }) {
     return Container(
-      height: 50,
+      height: 52, // Dibuat sedikit lebih lega
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.lightBlueAccent.shade100),
+        borderRadius:
+            BorderRadius.circular(16), // Disesuaikan agar serasi dengan tombol
+        border: Border.all(
+            color: const Color(0xFFA6D9E8), width: 1.5), // Border biru lembut
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
@@ -106,12 +108,13 @@ class _NameStepState extends State<NameStep> {
       ),
       child: TextField(
         controller: controller,
+        style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           border: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
+              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14),
         ),
       ),
     );
@@ -127,100 +130,130 @@ class _NameStepState extends State<NameStep> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    const headerFraction = 0.40;
-    final headerHeight = screenHeight * headerFraction;
-
     return Scaffold(
       backgroundColor: const Color(0xFF2E7D32),
+      // 🔹 STACK: Memisahkan Header (Belakang) dan Form (Depan)
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                // --- HEADER ---
-                Container(
-                  height: headerHeight,
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(32, 60, 32, 0),
-                  child: Column(
-                    children: [
-                      Image.asset('assets/images/Group 11.png', width: 130),
-                      const SizedBox(height: 30),
-                      const Text(
+          // ==========================================
+          // LAYER 1: MASKOT & TEKS (FIXED DI ATAS)
+          // ==========================================
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 40.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset('assets/images/Group 11.png', width: 140),
+                    const SizedBox(height: 24),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Text(
                         "Biar lebih akrab, sebutin\nnama kamu ya!",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           height: 1.3,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                // --- BODY FORM ---
-                Container(
-                  width: double.infinity,
-                  height: screenHeight * (1 - headerFraction) + 40,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF8FFF4),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(50),
-                      topRight: Radius.circular(50),
                     ),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 32.0, vertical: 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildInputField(
-                        hintText: "Nama Panjang",
-                        controller: fullNameController,
-                      ),
-                      const SizedBox(height: 15),
-                      _buildInputField(
-                        hintText: "Nama Panggilan",
-                        controller: nickNameController,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Tenang, kamu bisa mengubahnya kapan saja!",
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _validateAndSubmit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.lightBlueAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            elevation: 3,
-                          ),
-                          child: const Text(
-                            "Lanjut",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
+              ),
+            ),
+          ),
+
+          // ==========================================
+          // LAYER 2: KOTAK PUTIH FORM (SLIDING)
+          // ==========================================
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color:
+                      Color(0xFFF8FFF4), // Warna putih kehijauan khas desainmu
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -5),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(32, 40, 32, 24),
+                child: Column(
+                  // 🔹 Memaksa tinggi kotak putih hanya sebatas isi kontennya!
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInputField(
+                      hintText: "Contoh: Ahmad Putra",
+                      controller: fullNameController,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInputField(
+                      hintText: "Contoh: Putra",
+                      controller: nickNameController,
+                    ),
+                    const SizedBox(height: 12),
+
+                    Text(
+                      "Tenang, kamu bisa mengubahnya kapan saja!",
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+
+                    // 🔹 PENGGANTI SPACER: Karena mainAxisSize.min, Spacer dilarang.
+                    // Gunakan SizedBox untuk memberi jarak tetap sebelum tombol.
+                    const SizedBox(height: 40),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _validateAndSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(
+                              0xFF75CDE7), // Disamakan dengan tombol halaman Role
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          "Lanjutkan",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // SafeArea bawah untuk HP modern
+                    const SafeArea(
+                      top: false,
+                      child: SizedBox(height: 10),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

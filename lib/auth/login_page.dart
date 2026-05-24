@@ -81,93 +81,61 @@ class _LoginpageState extends State<Loginpage> {
     }
   }
 
-  Future<void> _loginWithGoogle() async {
-    setState(() => isLoading = true);
-
-    try {
-      final userCredential = await authService.signInWithGoogle();
-
-      if (userCredential != null) {
-        final user = userCredential.user;
-        final usersRef = FirebaseFirestore.instance.collection('users');
-
-        // Cek apakah user sudah ada di Firestore
-        final doc = await usersRef.doc(user!.uid).get();
-
-        if (!doc.exists) {
-          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
-          await usersRef.doc(user.uid).set({
-            'uniqueId': uniqueId,
-            'email': user.email,
-            'role': null,
-            'nickName': user.displayName ?? '',
-            'ageGroup': null,
-            'weight': null,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-
-        // Ambil data user
-        final userData = (await usersRef.doc(user.uid).get()).data();
-        final role = userData?['role'];
-
-        if (!mounted) return;
-        setState(() => isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Berhasil login dengan Google!")),
-        );
-
-        // 🔹 LOGIKA NAVIGASI BARU YANG SUPER BERSIH
-        if (role == null) {
-          context.go('/registration-wizard');
-        } else if (role.toString().toUpperCase() == 'PMO') {
-          context.go('/pmo-main-screen');
-        } else {
-          context.go('/main-screen');
-        }
-      } else {
-        if (!mounted) return;
-        setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("Gagal login dengan Google (Dibatalkan)")),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Terjadi kesalahan: ${e.toString()}")),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kPrimaryGreen,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      // Secara default, resizeToAvoidBottomInset adalah true di Flutter.
+      // Ini membuat layar mengecil saat keyboard muncul, sehingga kotak putih akan otomatis terdorong naik!
+      body: Stack(
         children: [
-          const AuthHeader(
-            imagePath: 'assets/tibi/tibi-happy.png',
-            title: 'Login',
-            subtitle: 'Silakan masukkan email dan password Anda.',
-          ),
-          const SizedBox(height: 30),
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFF6F9F3),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(50),
-                  topRight: Radius.circular(50),
+          // ==========================================
+          // LAYER 1: MASKOT (FIXED DI ATAS)
+          // ==========================================
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: const AuthHeader(
+                  imagePath: 'assets/tibi/tibi-happy.png',
+                  title: 'Login',
+                  subtitle: 'Silakan masukkan email dan password Anda.',
                 ),
               ),
-              padding: const EdgeInsets.all(24),
-              child: SingleChildScrollView(
+            ),
+          ),
+
+          // ==========================================
+          // LAYER 2: KOTAK PUTIH (FIXED DI BAWAH & SLIDING)
+          // ==========================================
+          Align(
+            alignment: Alignment.bottomCenter,
+            // SingleChildScrollView agar form tetap bisa digeser jika HP-nya sangat kecil
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF6F9F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(50),
+                    topRight: Radius.circular(50),
+                  ),
+                  // Bayangan tipis agar terlihat melayang di atas background hijau
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -5),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
                 child: Column(
+                  // 🔹 KUNCI UTAMA: Memaksa kotak putih hanya mengambil tinggi seukuran isi formnya!
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     CustomTextField(
                       hintText: 'Email',
@@ -179,7 +147,8 @@ class _LoginpageState extends State<Loginpage> {
                       hintText: 'Password',
                       controller: passwordController,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 32),
+
                     ElevatedButton(
                       onPressed: isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
@@ -187,18 +156,31 @@ class _LoginpageState extends State<Loginpage> {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
-                          side: const BorderSide(color: kPrimaryGreen),
                         ),
                         minimumSize: const Size(double.infinity, 50),
+                        elevation: 2,
                       ),
                       child: isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text("Login"),
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              "Login",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
+
                     Text.rich(
                       TextSpan(
                         text: 'Kamu Pengguna Baru? ',
+                        style: const TextStyle(color: Colors.black87),
                         children: [
                           TextSpan(
                             text: 'Sign Up',
@@ -214,30 +196,11 @@ class _LoginpageState extends State<Loginpage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    const Text(
-                      'Atau login dengan akun Google',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      onPressed: isLoading ? null : _loginWithGoogle,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          side: const BorderSide(color: Color(0xFF2E7D32)),
-                        ),
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      icon: Image.asset(
-                        'assets/icons/google.png',
-                        height: 24,
-                        width: 24,
-                      ),
-                      label: const Text('Login with Google'),
+
+                    // Area aman bawah untuk HP modern (tanpa tombol navigasi fisik)
+                    const SafeArea(
+                      top: false,
+                      child: SizedBox(height: 10),
                     ),
                   ],
                 ),

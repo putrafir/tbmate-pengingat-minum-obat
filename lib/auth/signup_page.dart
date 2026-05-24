@@ -153,142 +153,155 @@ class _SignUpState extends State<SignUp> {
 
   @override
   Widget build(BuildContext context) {
+    // Ambil tinggi layar HP saat ini (akan dinamis saat keyboard muncul)
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: kPrimaryGreen,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
         children: [
-          const AuthHeader(
-            imagePath: 'assets/tibi/tibi-happy.png',
-            title: 'Buat Akun',
-            subtitle: 'Silakan masukkan email dan password untuk membuat akun.',
+          // ==========================================
+          // LAYER 1: MASKOT (SELALU AMAN DI ATAS)
+          // ==========================================
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                // Sedikit dikurangi jarak atasnya agar proporsional
+                padding: const EdgeInsets.only(top: 10.0),
+                child: const AuthHeader(
+                  imagePath: 'assets/tibi/tibi-happy.png',
+                  title: 'Buat Akun',
+                  subtitle: 'Silakan masukkan detail akun Anda.',
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 30),
-          Expanded(
+
+          // ==========================================
+          // LAYER 2: KOTAK PUTIH (DIBATASI MAKS 75% LAYAR)
+          // ==========================================
+          Align(
+            alignment: Alignment.bottomCenter,
             child: Container(
+              width: double.infinity,
+              constraints: BoxConstraints(
+                // 🔹 KUNCI SAKTI: Kotak putih ini tidak akan pernah lebih tinggi dari 75% layar!
+                maxHeight: screenHeight * 0.75,
+              ),
               decoration: const BoxDecoration(
                 color: Color(0xFFF6F9F3),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(50),
                   topRight: Radius.circular(50),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -5),
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.all(24),
+              // 🔹 Memastikan saat di-scroll, konten tidak tembus ke luar sudut melengkung
+              clipBehavior: Clip.hardEdge,
+
+              // 🔹 SCROLL BERADA DI DALAM KOTAK PUTIH
               child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                // Jarak spasi dalam (padding) sedikit dikompres agar lebih padat
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     CustomTextField(
                       hintText: 'Email',
                       icon: Icons.email_outlined,
                       controller: emailController,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14), // Spasi diperkecil
                     CustomPasswordField(
                       hintText: 'Password',
                       controller: passwordController,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     CustomPasswordField(
                       hintText: 'Confirm Password',
                       controller: confirmPasswordController,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+
+                    // Baris Checkbox
                     Row(
                       children: [
                         Checkbox(
                           value: agreeToTerms,
-                          onChanged: (v) {
-                            setState(() {
-                              agreeToTerms = v!;
-                            });
-                          },
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
+                          activeColor: kPrimaryGreen,
+                          onChanged: (v) => setState(() => agreeToTerms = v!),
                         ),
                         const Expanded(
                           child: Text.rich(
                             TextSpan(
                               text: 'Saya setuju dengan ',
-                              style: TextStyle(fontSize: 12),
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.black87),
                               children: [
                                 TextSpan(
-                                  text: 'Syarat & Ketentuan',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
+                                    text: 'Syarat & Ketentuan',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
                                 TextSpan(text: ' serta '),
                                 TextSpan(
-                                  text: 'Kebijakan Privasi',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                TextSpan(text: '.'),
+                                    text: 'Kebijakan Privasi',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+
                     ElevatedButton(
                       onPressed: !isLoading ? _register : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2E7D32),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          side: const BorderSide(color: Color(0xFF2E7D32)),
-                        ),
+                            borderRadius: BorderRadius.circular(30)),
                         minimumSize: const Size(double.infinity, 50),
+                        elevation: 2,
                       ),
                       child: isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text("Sign Up"),
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5),
+                            )
+                          : const Text("Sign Up",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                     const SizedBox(height: 16),
+
                     Text.rich(
                       TextSpan(
                         text: 'Sudah punya akun? ',
+                        style: const TextStyle(color: Colors.black87),
                         children: [
                           TextSpan(
                             text: 'Login',
                             style: const TextStyle(
-                              color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.bold,
-                            ),
+                                color: Color(0xFF2E7D32),
+                                fontWeight: FontWeight.bold),
                             recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                context.go('/login');
-                              },
+                              ..onTap = () => context.go('/login'),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    const Text(
-                      'Atau gunakan akun Google',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      onPressed: isLoading ? null : _signUpWithGoogle,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          side: const BorderSide(color: Color(0xFF2E7D32)),
-                        ),
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      icon: Image.asset(
-                        'assets/icons/google.png',
-                        height: 24,
-                        width: 24,
-                      ),
-                      label: isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Sign Up with Google'),
                     ),
                   ],
                 ),
