@@ -39,10 +39,6 @@ final GoRouter appRouter = GoRouter(
         return '/auth';
       }
 
-      if (user != null && isAuthRoute) {
-        return '/main-screen';
-      }
-
       return null;
     },
     routes: [
