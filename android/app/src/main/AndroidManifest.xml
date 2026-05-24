@@ -14,7 +14,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <application
-        android:label="tbmate_kmipn"
+        android:label="TBMate"
         android:name="${applicationName}">
         <activity
             android:name=".MainActivity"
