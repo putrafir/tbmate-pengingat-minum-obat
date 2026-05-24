@@ -142,8 +142,7 @@ class _AuthPageState extends State<AuthPage> with WidgetsBindingObserver {
           const AuthHeader(
             imagePath: 'assets/tibi/tibi-happy.png',
             title: 'SELAMAT DATANG',
-            subtitle:
-                'Silakan masuk jika sudah punya akun, atau daftar sekarang untuk mulai menggunakan layanan',
+            subtitle: 'Masuk ke akun Anda atau buat akun baru untuk memulai.',
           ),
           const SizedBox(height: 30),
           Expanded(
