@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 class CreatePatientAccountPage extends StatefulWidget {
   const CreatePatientAccountPage({super.key});
@@ -12,42 +11,16 @@ class CreatePatientAccountPage extends StatefulWidget {
       _CreatePatientAccountPageState();
 }
 
-class _CreatePatientAccountPageState
-    extends State<CreatePatientAccountPage> {
-  final fullNameController = TextEditingController();
-  final nickNameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-
+class _CreatePatientAccountPageState extends State<CreatePatientAccountPage> {
+  final uidController = TextEditingController();
   bool isLoading = false;
 
-  Future<void> _createPatientAccount() async {
-    final fullName = fullNameController.text.trim();
-    final nickName = nickNameController.text.trim();
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
-    final confirmPassword =
-        confirmPasswordController.text.trim();
+  Future<void> _addPatient() async {
+    final uniqueId = uidController.text.trim();
 
-    if (fullName.isEmpty ||
-        nickName.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
+    if (uniqueId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Semua field wajib diisi"),
-        ),
-      );
-      return;
-    }
-
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Password tidak sama"),
-        ),
+        const SnackBar(content: Text("UID Pasien wajib diisi")),
       );
       return;
     }
@@ -56,358 +29,245 @@ class _CreatePatientAccountPageState
       setState(() => isLoading = true);
 
       /// ================= PMO AKTIF =================
-      final currentPMO =
-          FirebaseAuth.instance.currentUser;
+      final currentPMO = FirebaseAuth.instance.currentUser;
+      if (currentPMO == null) throw "PMO tidak ditemukan, silakan login ulang.";
+      final pmoUid = currentPMO.uid;
 
-      if (currentPMO == null) {
-        throw FirebaseAuthException(
-          code: "no-user",
-          message: "PMO tidak ditemukan",
+      /// ================= 1. CARI PASIEN VIA UID =================
+      // Kita query collection users berdasarkan field 'uniqueId' (Contoh: USR-123456789)
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('uniqueId', isEqualTo: uniqueId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Pasien dengan UID tersebut tidak ditemukan")),
         );
+        return;
       }
 
-      final doctorId = currentPMO.uid;
+      final patientDoc = querySnapshot.docs.first;
+      final patientUid = patientDoc
+          .id; // Ini adalah Document ID asli (Firebase Auth UID) pasien
+      final patientName = patientDoc.data()['fullName'] ?? 'Pasien';
+      final patientRole = patientDoc.data()['role'];
 
-      /// ================= SECONDARY APP =================
-      final secondaryApp =
-          await Firebase.initializeApp(
-        name: 'SecondaryApp',
-        options: Firebase.app().options,
-      );
+      // Validasi: Cegah menambahkan sesama PMO
+      if (patientRole.toString().toUpperCase() == 'PMO') {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gagal: UID tersebut milik akun PMO")),
+        );
+        return;
+      }
 
-      final secondaryAuth =
-          FirebaseAuth.instanceFor(
-        app: secondaryApp,
-      );
+      /// ================= 2. HUBUNGKAN KE PMO =================
+      // Konsisten dengan logika hapus pasien di AkunPageRev, kita gunakan koleksi 'PMO'
+      final pmoRef = FirebaseFirestore.instance.collection('PMO').doc(pmoUid);
 
-      /// ================= BUAT AKUN PASIEN =================
-      final userCredential =
-          await secondaryAuth
-              .createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      final patientUser = userCredential.user!;
-
-      final uniqueId =
-          'USR-${DateTime.now().millisecondsSinceEpoch}';
-
-      /// ================= SIMPAN DATA USER =================
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(patientUser.uid)
-          .set({
-        'uniqueId': uniqueId,
-        'email': email,
-        'fullName': fullName,
-        'nickName': nickName,
-        'role': 'PASIEN',
-        'ageGroup': null,
-        'weight': null,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      /// ================= HUBUNGKAN KE PMO =================
-      final doctorRef = FirebaseFirestore.instance
-          .collection('doctorPatients')
-          .doc(doctorId);
-
-      await FirebaseFirestore.instance
-          .runTransaction((transaction) async {
-        final snapshot =
-            await transaction.get(doctorRef);
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(pmoRef);
 
         if (!snapshot.exists) {
-          transaction.set(doctorRef, {
-            'patients': [patientUser.uid],
+          // Kalau dokumen PMO belum ada, buat baru
+          transaction.set(pmoRef, {
+            'patients': [patientUid],
           });
         } else {
-          final data = snapshot.data() ?? {};
-
-          final List<dynamic> patients =
-              List.from(data['patients'] ?? []);
-
-          if (!patients.contains(patientUser.uid)) {
-            patients.add(patientUser.uid);
-
-            transaction.update(doctorRef, {
-              'patients': patients,
-            });
-          }
+          // arrayUnion otomatis mencegah ID yang sama dimasukkan 2 kali (anti duplikat)
+          transaction.update(pmoRef, {
+            'patients': FieldValue.arrayUnion([patientUid]),
+          });
         }
       });
 
-      /// ================= CLEANUP =================
-      await secondaryAuth.signOut();
-      await secondaryApp.delete();
-
       if (!mounted) return;
-
       setState(() => isLoading = false);
 
-      /// ================= SUCCESS =================
+      /// ================= 3. SUCCESS =================
       showDialog(
         context: context,
+        barrierDismissible: false, // Wajib klik tombol OK
         builder: (_) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            title: const Text(
-              "Berhasil",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Text("Berhasil",
+                style: TextStyle(fontWeight: FontWeight.bold)),
             content: Text(
-              "Akun pasien $fullName berhasil dibuat.",
-            ),
+                "Pasien $patientName berhasil ditambahkan ke daftar pengawasanmu."),
             actions: [
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  context.go(
-                    '/input-usia',
-                    extra: {
-                      'patientUid': patientUser.uid,
-                      'isFromPMO': true,
-                    },
-                  );
+                  Navigator.pop(context); // Tutup Dialog
+                  context.pop(); // Kembali ke halaman utama PMO
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(0xFF2E7D32),
-                ),
-                child: const Text(
-                  "OK",
-                  style: TextStyle(color: Colors.white),
-                ),
+                    backgroundColor: const Color(0xFF2E7D32)),
+                child: const Text("OK", style: TextStyle(color: Colors.white)),
               ),
             ],
           );
         },
       );
-    } on FirebaseAuthException catch (e) {
-      setState(() => isLoading = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.message ?? "Terjadi kesalahan",
-          ),
-        ),
-      );
     } catch (e) {
       setState(() => isLoading = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Error: $e",
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF2E7D32),
-
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-
-              /// ================= HEADER =================
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-
-                    /// BACK BUTTON
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        onPressed: () => context.pop(),
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
+        bottom: false, // Agar form putih mulus sampai bawah layar
+        child: Column(
+          children: [
+            /// ================= HEADER =================
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      /// BACK BUTTON
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: IconButton(
+                          onPressed: () => context.pop(),
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.white),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 10),
 
-                    const SizedBox(height: 10),
-
-                    /// ICON
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE8F5E9),
-                        shape: BoxShape.circle,
+                      /// ICON
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE8F5E9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons
+                              .person_search_rounded, // 🔹 Icon diganti jadi pencarian
+                          size: 60,
+                          color: Color(0xFF2E7D32),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.person_add_alt_1,
-                        size: 60,
-                        color: Color(0xFF2E7D32),
+                      const SizedBox(height: 24),
+
+                      /// TITLE
+                      const Text(
+                        "Tambah Pasien",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
 
-                    const SizedBox(height: 24),
-
-                    /// TITLE
-                    const Text(
-                      "Buat Akun Pasien",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                      /// SUBTITLE
+                      const Text(
+                        "Masukkan UID Pasien yang sudah terdaftar di aplikasi TBMate untuk mulai melakukan pengawasan.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    /// SUBTITLE
-                    const Text(
-                      "PMO dapat langsung membuat akun pasien agar pasien bisa login tanpa setup manual",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              /// ================= FORM =================
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF5F8F2),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40),
-                    topRight: Radius.circular(40),
+                    ],
                   ),
                 ),
+              ),
+            ),
 
-                child: Column(
-                  children: [
-
-                    /// FULL NAME
-                    _buildField(
-                      controller: fullNameController,
-                      hint: "Nama Panjang Pasien",
-                      icon: Icons.badge_outlined,
+            /// ================= FORM =================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F8F2),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40),
+                  topRight: Radius.circular(40),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -5)),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Hug content
+                children: [
+                  /// UID PASIEN
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.blue.shade100),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    /// NICK NAME
-                    _buildField(
-                      controller: nickNameController,
-                      hint: "Nama Panggilan Pasien",
-                      icon: Icons.person_outline,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// EMAIL
-                    _buildField(
-                      controller: emailController,
-                      hint: "Email",
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// PASSWORD
-                    _buildField(
-                      controller: passwordController,
-                      hint: "Password",
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// CONFIRM PASSWORD
-                    _buildField(
-                      controller: confirmPasswordController,
-                      hint: "Konfirmasi Password",
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    /// BUTTON
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isLoading
-                            ? null
-                            : _createPatientAccount,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFF6EC1E4),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(18),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text(
-                                "Buat Akun Pasien",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                    child: TextField(
+                      controller: uidController,
+                      decoration: const InputDecoration(
+                        hintText: "Contoh: USR-1715000000000",
+                        prefixIcon: Icon(Icons.qr_code_scanner_rounded),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 20),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 28),
 
-                    const SizedBox(height: 24),
-                  ],
-                ),
+                  /// BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _addPatient,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6EC1E4),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5),
+                            )
+                          : const Text(
+                              "Hubungkan Pasien",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                  // Area aman bawah untuk HP modern
+                  const SafeArea(top: false, child: SizedBox(height: 10)),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon),
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 20),
+            ),
+          ],
         ),
       ),
     );

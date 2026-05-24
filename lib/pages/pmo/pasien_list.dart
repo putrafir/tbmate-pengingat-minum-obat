@@ -262,205 +262,133 @@ class _PasienListState extends State<PasienList> {
   }
 
   /// 🔹 Dialog Modern Tambah Pasien
+  /// 🔹 Dialog Modern Tambah Pasien (Hanya via UID)
   void _showAddPatientDialog(BuildContext context) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: "Tambah Pasien",
-      barrierColor: Colors.black.withValues(alpha: 0.45),
+      barrierColor: Colors.black.withOpacity(0.45),
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (_, __, ___) {
         return const SizedBox.shrink();
       },
       transitionBuilder: (context, animation, _, child) {
         String uniqueId = '';
-        bool isExisting = true;
+        bool isSaving = false; // State untuk efek loading
 
         return StatefulBuilder(
-          builder: (context, setState) {
-            return Transform.scale(
-              scale: Curves.easeOutBack.transform(animation.value),
-              child: Opacity(
-                opacity: animation.value,
-                child: Center(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Container(
-                      width: MediaQuery.of(context).size.width * 0.82,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          /// 🔹 Close Button
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close, size: 18),
-                              ),
+          builder: (context, setStateDialog) {
+            // Gunakan PopScope agar dialog tidak bisa ditutup saat sedang loading
+            return PopScope(
+              canPop: !isSaving,
+              child: Transform.scale(
+                scale: Curves.easeOutBack.transform(animation.value),
+                child: Opacity(
+                  opacity: animation.value,
+                  child: Center(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.85,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
                             ),
-                          ),
-
-                          /// 🔹 Icon
-                          Container(
-                            width: 68,
-                            height: 68,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: const Icon(
-                              Icons.person_add_alt_1_rounded,
-                              size: 34,
-                              color: Color(0xFF2E7D32),
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          /// 🔹 Title
-                          const Text(
-                            "Tambah Pasien",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          const Text(
-                            "Apakah pasien sudah terdaftar di sistem?",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 15,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          /// 🔹 Segmented Button
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      isExisting = true;
-                                    });
-                                  },
-                                  child: Container(
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: isExisting
-                                          ? const Color(0xFF2E7D32)
-                                          : Colors.white,
-                                      borderRadius: BorderRadius.circular(30),
-                                      border: Border.all(
-                                        color: const Color(0xFF2E7D32),
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        "Sudah Terdaftar",
-                                        style: TextStyle(
-                                          color: isExisting
-                                              ? Colors.white
-                                              : const Color(0xFF2E7D32),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    context.push('/tambah-pasien-baru');
-                                  },
-                                  child: Container(
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(30),
-                                      border: Border.all(
-                                        color: const Color(0xFF2E7D32),
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "Pasien Baru",
-                                        style: TextStyle(
-                                          color: Color(0xFF2E7D32),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 28),
-
-                          /// 🔹 Input
-                          if (isExisting) ...[
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            /// 🔹 Close Button
                             Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                "Masukkan ID Pasien",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
+                              alignment: Alignment.topRight,
+                              child: GestureDetector(
+                                onTap: isSaving
+                                    ? null
+                                    : () => Navigator.pop(context),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.close,
+                                      size: 18,
+                                      color: isSaving
+                                          ? Colors.grey.shade400
+                                          : Colors.black87),
                                 ),
                               ),
                             ),
 
-                            const SizedBox(height: 10),
+                            /// 🔹 Icon
+                            Container(
+                              width: 68,
+                              height: 68,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: const Icon(
+                                Icons.person_search_rounded,
+                                size: 34,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
 
+                            /// 🔹 Title
+                            const Text(
+                              "Tambah Pasien",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            /// 🔹 Subtitle
+                            const Text(
+                              "Masukkan UID Pasien yang sudah terdaftar di aplikasi TBMate.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+
+                            /// 🔹 Input UID
                             TextField(
+                              enabled: !isSaving,
                               onChanged: (val) => uniqueId = val.trim(),
                               decoration: InputDecoration(
-                                hintText: "Ketik ID pasien",
-                                prefixIcon: const Icon(Icons.search),
+                                hintText: "Contoh: USR-12345...",
+                                prefixIcon:
+                                    const Icon(Icons.qr_code_scanner_rounded),
                                 filled: true,
-                                fillColor: Colors.grey.shade50,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 18,
-                                ),
+                                fillColor: isSaving
+                                    ? Colors.grey.shade100
+                                    : Colors.grey.shade50,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 18),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(18),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(18),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -471,8 +399,7 @@ class _PasienListState extends State<PasienList> {
                                 ),
                               ),
                             ),
-
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
 
                             /// 🔹 Info Box
                             Container(
@@ -484,130 +411,163 @@ class _PasienListState extends State<PasienList> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: Color(0xFF2E7D32),
-                                  ),
+                                  const Icon(Icons.info_outline,
+                                      color: Color(0xFF2E7D32), size: 20),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      "Pastikan ID pasien benar agar data dapat ditemukan.",
+                                      "UID pasien dapat dilihat pada halaman menu akun pasien.",
                                       style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 13,
-                                      ),
+                                          color: Colors.grey.shade700,
+                                          fontSize: 13),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(height: 28),
+
+                            /// 🔹 Simpan Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton(
+                                onPressed: isSaving
+                                    ? null
+                                    : () async {
+                                        if (uniqueId.isEmpty) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text(
+                                                      "UID Pasien tidak boleh kosong")));
+                                          return;
+                                        }
+
+                                        setStateDialog(() => isSaving = true);
+
+                                        try {
+                                          // 1. Cari Pasien
+                                          final query = await FirebaseFirestore
+                                              .instance
+                                              .collection('users')
+                                              .where('uniqueId',
+                                                  isEqualTo: uniqueId)
+                                              .limit(1)
+                                              .get();
+
+                                          if (query.docs.isEmpty) {
+                                            setStateDialog(
+                                                () => isSaving = false);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        "Pasien dengan UID tersebut tidak ditemukan.")));
+                                            return;
+                                          }
+
+                                          final patientDoc = query.docs.first;
+                                          final patientDocId = patientDoc.id;
+                                          final patientRole =
+                                              patientDoc.data()['role'];
+                                          final patientName =
+                                              patientDoc.data()['fullName'] ??
+                                                  'Pasien';
+
+                                          // Validasi cegah masukin sesama PMO
+                                          if (patientRole
+                                                  .toString()
+                                                  .toUpperCase() ==
+                                              'PMO') {
+                                            setStateDialog(
+                                                () => isSaving = false);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        "Gagal: UID tersebut milik akun PMO.")));
+                                            return;
+                                          }
+
+                                          // 2. Simpan ke daftar PMO (Pakai arrayUnion anti duplikat)
+                                          final doctorDoc = FirebaseFirestore
+                                              .instance
+                                              .collection('PMO')
+                                              .doc(currentDoctorId);
+
+                                          await FirebaseFirestore.instance
+                                              .runTransaction(
+                                                  (transaction) async {
+                                            final snapshot = await transaction
+                                                .get(doctorDoc);
+                                            if (!snapshot.exists) {
+                                              transaction.set(doctorDoc, {
+                                                'patients': [patientDocId]
+                                              });
+                                            } else {
+                                              transaction.update(doctorDoc, {
+                                                'patients':
+                                                    FieldValue.arrayUnion(
+                                                        [patientDocId])
+                                              });
+                                            }
+                                          });
+
+                                          if (!context.mounted) return;
+
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text(
+                                                "Pasien $patientName berhasil ditambahkan."),
+                                            backgroundColor: Colors.green,
+                                          ));
+
+                                          Navigator.pop(
+                                              context); // Tutup dialog jika sukses
+                                        } catch (e) {
+                                          setStateDialog(
+                                              () => isSaving = false);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                                  content: Text("Error: $e")));
+                                        }
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2E7D32),
+                                  disabledBackgroundColor:
+                                      const Color(0xFF2E7D32).withOpacity(0.5),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18)),
+                                ),
+                                child: isSaving
+                                    ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5))
+                                    : const Text("Hubungkan",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            /// 🔹 Batal
+                            TextButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () => Navigator.pop(context),
+                              child: Text("Batal",
+                                  style: TextStyle(
+                                      color: isSaving
+                                          ? Colors.grey
+                                          : const Color(0xFF2E7D32),
+                                      fontSize: 15)),
+                            ),
                           ],
-
-                          const SizedBox(height: 28),
-
-                          /// 🔹 Simpan Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                if (uniqueId.isEmpty) return;
-
-                                final query = await FirebaseFirestore.instance
-                                    .collection('users')
-                                    .where('uniqueId', isEqualTo: uniqueId)
-                                    .limit(1)
-                                    .get();
-
-                                if (query.docs.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "ID Pasien tidak ditemukan.",
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                final patientDoc = query.docs.first;
-                                final patientDocId = patientDoc.id;
-                                final patientData = patientDoc.data();
-
-                                final doctorDoc = FirebaseFirestore.instance
-                                    .collection('PMO')
-                                    .doc(currentDoctorId);
-
-                                await FirebaseFirestore.instance
-                                    .runTransaction((transaction) async {
-                                  final snapshot =
-                                      await transaction.get(doctorDoc);
-
-                                  if (!snapshot.exists) {
-                                    transaction.set(doctorDoc, {
-                                      'patients': [patientDocId],
-                                    });
-                                  } else {
-                                    final data = snapshot.data() ?? {};
-                                    final List<dynamic> patients =
-                                        List.from(data['patients'] ?? []);
-
-                                    if (!patients.contains(patientDocId)) {
-                                      patients.add(patientDocId);
-
-                                      transaction.update(doctorDoc, {
-                                        'patients': patients,
-                                      });
-                                    }
-                                  }
-                                });
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Pasien ${patientData['fullName']} berhasil ditambahkan.",
-                                    ),
-                                  ),
-                                );
-
-                                Navigator.pop(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2E7D32),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                              ),
-                              icon: const Icon(
-                                Icons.save_outlined,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                "Simpan",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          /// 🔹 Batal
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text(
-                              "Batal",
-                              style: TextStyle(
-                                color: Color(0xFF2E7D32),
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

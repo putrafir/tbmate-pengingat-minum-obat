@@ -50,10 +50,8 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
   Future<List<String>> getPatientIds() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
-    final doc = await FirebaseFirestore.instance
-        .collection('PMO')
-        .doc(user.uid)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance.collection('PMO').doc(user.uid).get();
     if (doc.exists) {
       final data = doc.data() as Map<String, dynamic>;
       return List<String>.from(data['patients'] ?? []);
@@ -158,37 +156,36 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                           //   ),
                           // ),
                           StreamBuilder<DocumentSnapshot>(
-                          stream: getCurrentUserStream(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const Text(
-                                "Hai...",
-                                style: TextStyle(
+                            stream: getCurrentUserStream(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const Text(
+                                  "Hai...",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              }
+
+                              final data = snapshot.data!.data()
+                                  as Map<String, dynamic>?;
+
+                              final nickName = data?['nickName'] ??
+                                  data?['fullName'] ??
+                                  'PMO';
+
+                              return Text(
+                                "Hai $nickName!",
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
                               );
-                            }
-
-                            final data =
-                                snapshot.data!.data() as Map<String, dynamic>?;
-
-                            final nickName =
-                                data?['nickName'] ??
-                                data?['fullName'] ??
-                                'PMO';
-
-                            return Text(
-                              "Hai $nickName!",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          },
-                        ),
+                            },
+                          ),
                           const Text(
                             "Pastikan Pasien Kamu Sudah Minum Obat Hari Ini Ya!",
                             style: TextStyle(
@@ -517,14 +514,18 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                                                   if (jadwal[
                                                           'waktu_verifikasi'] !=
                                                       null) {
-                                                    DateTime verifDate =
-                                                        (jadwal['waktu_verifikasi']
-                                                                as Timestamp)
-                                                            .toDate();
-
-                                                    waktuAktual =
-                                                        DateFormat('HH:mm')
-                                                            .format(verifDate);
+                                                    // Amankan kalau tiba-tiba datanya String bukan Timestamp
+                                                    if (jadwal[
+                                                            'waktu_verifikasi']
+                                                        is Timestamp) {
+                                                      DateTime verifDate =
+                                                          (jadwal['waktu_verifikasi']
+                                                                  as Timestamp)
+                                                              .toDate();
+                                                      waktuAktual = DateFormat(
+                                                              'HH:mm')
+                                                          .format(verifDate);
+                                                    }
                                                   }
 
                                                   context.pushNamed(
@@ -536,8 +537,6 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                                                       'status': status,
                                                       'waktu': waktuMinum,
                                                       'tanggal': tanggal,
-                                                      'buktiFoto':
-                                                          jadwal['bukti_foto'],
                                                       'verifikasiAi': jadwal[
                                                           'verifikasi_ai'],
                                                       'skorAi': jadwal[
@@ -547,6 +546,10 @@ class _PmoJadwalPageState extends State<PmoJadwalPage> {
                                                       'riwayatTunda': jadwal[
                                                               'riwayat_tunda'] ??
                                                           [],
+
+                                                      // 🔹 INI KUNCI FIX-NYA! Ganti buktiFoto dengan jadwalDocPath
+                                                      'jadwalDocPath':
+                                                          docRef.path,
                                                     },
                                                   );
                                                 },
