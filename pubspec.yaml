@@ -57,6 +57,7 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  flutter_native_splash: ^2.4.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -130,3 +131,15 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/mobile-logo-tbmate.png"
   remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#2F7B2F" # Warna hijau TBMate
+  color_dark: "#2F7B2F" # Warna hijau TBMate
+  image: "assets/pill-splashscreen.png"
+  image_dark: "assets/pill-splashscreen.png" # Bisa pakai logo ini untuk pemanasan
+  fullscreen: true
+  android_12:
+    color: "#2F7B2F"
+    color_dark: "#2F7B2F"
+    image: "assets/pill-splashscreen.png"
+    image_dark: "assets/pill-splashscreen.png"
