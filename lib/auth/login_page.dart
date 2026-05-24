@@ -55,9 +55,9 @@ class _LoginpageState extends State<Loginpage> {
         // Ambil data user terbaru
         final userData = (await usersRef.doc(user.uid).get()).data();
         final role = userData?['role'];
+        final isSetupComplete = userData?['isSetupComplete'] ?? false;
 
-        // 🔹 LOGIKA NAVIGASI BARU YANG SUPER BERSIH
-        if (role == null) {
+        if (isSetupComplete == false) {
           context.go('/registration-wizard');
         } else if (role.toString().toUpperCase() == 'PMO') {
           context.go('/pmo-main-screen');

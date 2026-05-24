@@ -74,8 +74,13 @@ class _SignUpState extends State<SignUp> {
             'ageGroup': null,
             'weight': null,
             'createdAt': FieldValue.serverTimestamp(),
+            'isSetupComplete': false,
           });
         }
+
+        final userData = (await usersRef.doc(user.uid).get()).data();
+        final role = userData?['role'];
+        final isSetupComplete = userData?['isSetupComplete'] ?? false;
 
         if (!mounted) return;
         setState(() => isLoading = false);
@@ -83,63 +88,19 @@ class _SignUpState extends State<SignUp> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Berhasil membuat akun!")),
         );
-        // 🔹 DIARAHKAN KE WIZARD
-        context.go('/registration-wizard');
+        if (isSetupComplete == false) {
+          context.go('/registration-wizard');
+        } else if (role.toString().toUpperCase() == 'PMO') {
+          context.go('/pmo-main-screen');
+        } else {
+          context.go('/main-screen');
+        }
       } else {
         if (!mounted) return;
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text("Email sudah terdaftar atau ada kesalahan")),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Terjadi kesalahan: $e")),
-      );
-    }
-  }
-
-  Future<void> _signUpWithGoogle() async {
-    setState(() => isLoading = true);
-
-    try {
-      final userCredential = await authService.signInWithGoogle();
-
-      if (userCredential != null) {
-        final user = userCredential.user;
-        final usersRef = FirebaseFirestore.instance.collection('users');
-
-        // SIMPAN DATA KE FIRESTORE
-        final doc = await usersRef.doc(user!.uid).get();
-        if (!doc.exists) {
-          final uniqueId = 'USR-${DateTime.now().millisecondsSinceEpoch}';
-          await usersRef.doc(user.uid).set({
-            'uniqueId': uniqueId,
-            'email': user.email,
-            'role': null,
-            'nickName': user.displayName ?? '',
-            'ageGroup': null,
-            'weight': null,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-
-        if (!mounted) return;
-        setState(() => isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Berhasil sign up dengan Google!")),
-        );
-        // 🔹 DIARAHKAN KE WIZARD
-        context.go('/registration-wizard');
-      } else {
-        if (!mounted) return;
-        setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Proses Google sign up dibatalkan")),
         );
       }
     } catch (e) {
@@ -302,6 +263,10 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ],
                       ),
+                    ),
+                    const SafeArea(
+                      top: false,
+                      child: SizedBox(height: 20),
                     ),
                   ],
                 ),

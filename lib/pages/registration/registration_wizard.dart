@@ -137,7 +137,8 @@ class _RegistrationWizardState extends State<RegistrationWizard> {
             'diminumIntensif': 0,
             'totalLanjutan': 48,
             'diminumLanjutan': 0,
-            'status': 'Aktif'
+            'status': 'Aktif',
+            'isSetupComplete': true
           },
           SetOptions(merge: true));
 
@@ -234,44 +235,40 @@ class _RegistrationWizardState extends State<RegistrationWizard> {
               ),
 
               // STEP 2: INPUT NAMA
-             NameStep(
-              onNext: (full, nick) async {
-                fullName = full;
-                nickName = nick;
+              NameStep(
+                onNext: (full, nick) async {
+                  fullName = full;
+                  nickName = nick;
 
-                // 🔥 JIKA ROLE PMO
-                if (role == 'PMO') {
+                  // 🔥 JIKA ROLE PMO
+                  if (role == 'PMO') {
+                    final user = FirebaseAuth.instance.currentUser;
 
-                  final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .set({
+                        'uniqueId':
+                            'USR-${DateTime.now().millisecondsSinceEpoch}',
+                        'email': user.email,
+                        'role': role,
+                        'fullName': fullName,
+                        'nickName': nickName,
+                        'createdAt': FieldValue.serverTimestamp(),
+                        'isSetupComplete': true,
+                      }, SetOptions(merge: true));
 
-                  if (user != null) {
-
-                    await FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(user.uid)
-                        .set({
-                      'uniqueId':
-                          'USR-${DateTime.now().millisecondsSinceEpoch}',
-                      'email': user.email,
-                      'role': role,
-                      'fullName': fullName,
-                      'nickName': nickName,
-                      'createdAt': FieldValue.serverTimestamp(),
-                    }, SetOptions(merge: true));
-
-                    if (context.mounted) {
-                      context.go('/pmo-main-screen');
+                      if (context.mounted) {
+                        context.go('/pmo-main-screen');
+                      }
                     }
+                  } else {
+                    // 🔥 PASIEN LANJUT FLOW NORMAL
+                    _nextStep();
                   }
-
-                } else {
-
-                  // 🔥 PASIEN LANJUT FLOW NORMAL
-                  _nextStep();
-
-                }
-              },
-            ),
+                },
+              ),
 
               // STEP 3: WELCOME GREETING
               WelcomeStep(

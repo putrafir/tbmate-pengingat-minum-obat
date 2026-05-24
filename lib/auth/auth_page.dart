@@ -89,6 +89,7 @@ class _AuthPageState extends State<AuthPage> with WidgetsBindingObserver {
             'nickName': user.displayName ?? '',
             'ageGroup': null,
             'weight': null,
+            'isSetupComplete': false,
             'createdAt': FieldValue.serverTimestamp(),
           });
         }
@@ -96,6 +97,7 @@ class _AuthPageState extends State<AuthPage> with WidgetsBindingObserver {
         // Ambil data terbaru user
         final userData = (await usersRef.doc(user.uid).get()).data();
         final role = userData?['role'];
+        final isSetupComplete = userData?['isSetupComplete'] ?? false;
 
         if (!mounted) return; // Wajib sebelum panggil context lagi
 
@@ -106,14 +108,11 @@ class _AuthPageState extends State<AuthPage> with WidgetsBindingObserver {
 
         // Tentukan halaman tujuan berdasarkan role dan kelengkapan data
         // 🔹 Tentukan navigasi berdasarkan arsitektur Wizard baru
-        if (role == null) {
-          // Jika role null, berarti belum menyelesaikan Wizard pendaftaran
+        if (isSetupComplete == false) {
           context.go('/registration-wizard');
         } else if (role.toString().toUpperCase() == 'PMO') {
-          // Jika sudah lengkap dan dia PMO
           context.go('/pmo-main-screen');
         } else {
-          // Jika sudah lengkap dan dia Pasien
           context.go('/main-screen');
         }
       } else {
