@@ -20,9 +20,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuthAndNavigate() async {
-    FlutterNativeSplash.remove();
+    
     // Kita tetap beri jeda minimal 2.5 detik agar animasi/splash terlihat
     await Future.delayed(const Duration(milliseconds: 2500));
+    FlutterNativeSplash.remove();
 
     if (!mounted) return;
 
@@ -39,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .get();
+          .get( const GetOptions(source: Source.server));
 
       if (!doc.exists) {
         // Kalau dokumen nggak ada (misal bug/terhapus manual), suruh login ulang

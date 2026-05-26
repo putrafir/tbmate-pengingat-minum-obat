@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:tbmate_kmipn/pages/pasien/profile/edit_settime.dart';
+import 'package:tbmate_kmipn/pages/pasien/profile/alarmpage.dart';
 
 class AkunPageRev extends StatefulWidget {
   final String fullName;
@@ -243,7 +244,12 @@ class _AkunPageRevState extends State<AkunPageRev> {
                         title: "Notifikasi",
                         subtitle: "Kelola preferensi notifikasi",
                         color: Colors.blue,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const Alarmpage()));
+                        },
                       ),
                       const SizedBox(height: 16),
 

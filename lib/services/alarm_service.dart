@@ -1,6 +1,5 @@
 // import 'dart:ui';
 
-
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -8,10 +7,37 @@ import 'package:flutter/material.dart'; // Untuk debugPrint
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
-
 class AlarmService {
   // Gunakan channelKey baru untuk mereset cache Android
-  static const String _channelKey = 'tbmate_alarm_v6';
+  static const String _channelKey = 'tbmate_alarm_v8';
+
+  static Future<String> getUserAlarmSound() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        return 'classic_alarm';
+      }
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        if (data != null && data['alarmSound'] != null) {
+          return data['alarmSound'];
+        }
+      }
+
+      return 'classic_alarm';
+    } catch (e) {
+      debugPrint("Error ambil sound alarm: $e");
+      return 'classic_alarm';
+    }
+  }
 
   static Future<void> init() async {
     await AwesomeNotifications().initialize(
@@ -22,9 +48,9 @@ class AlarmService {
           channelName: 'TBMate Alarm',
           channelDescription: 'Alarm minum obat',
           importance: NotificationImportance.Max,
-          defaultRingtoneType: DefaultRingtoneType.Alarm,
+          // defaultRingtoneType: DefaultRingtoneType.Alarm,
           playSound: true,
-          soundSource: 'resource://raw/amba',
+          soundSource: 'resource://raw/classic_alarm',
           enableVibration: true,
           criticalAlerts: true,
           defaultColor: const Color(0xFF2E7D32),
@@ -64,6 +90,9 @@ class AlarmService {
       debugPrint("DEBUG: Gagal menjadwalkan, waktu sudah lewat.");
       return;
     }
+    final selectedSound = await getUserAlarmSound();
+    debugPrint("SOUND FIREBASE: $selectedSound");
+debugPrint("PATH SOUND: resource://raw/$selectedSound");
     String localTimeZone =
         await AwesomeNotifications().getLocalTimeZoneIdentifier();
     await AwesomeNotifications().createNotification(
@@ -83,7 +112,7 @@ class AlarmService {
         criticalAlert: true,
         locked: true,
         autoDismissible: false,
-        customSound: 'resource://raw/amba',
+        customSound: 'resource://raw/$selectedSound',
         payload: {"docId": docId},
       ),
       actionButtons: [
@@ -116,7 +145,7 @@ class AlarmService {
 
   static Future<void> repeatSnooze(
       int id, Duration duration, String docId) async {
-        debugPrint("🔥 SNOOZE → docId: $docId"); // 👈 TAMBAHKAN INI
+    debugPrint("🔥 SNOOZE → docId: $docId"); // 👈 TAMBAHKAN INI
     final userId = FirebaseAuth.instance.currentUser!.uid;
     final doc = await FirebaseFirestore.instance
         .collection('users')
@@ -146,6 +175,7 @@ class AlarmService {
     String localTimeZone =
         await AwesomeNotifications().getLocalTimeZoneIdentifier();
 
+    final selectedSound = await getUserAlarmSound();
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: id,
@@ -163,7 +193,7 @@ class AlarmService {
         locked: true,
         autoDismissible: false,
         criticalAlert: true,
-        customSound: 'resource://raw/amba',
+        customSound: 'resource://raw/$selectedSound',
         payload: {"docId": docId},
       ),
       schedule: NotificationCalendar(
