@@ -43,14 +43,14 @@ class NotificationController {
         "DEBUG: Tombol ditekan -> ${action.buttonKeyPressed} (ID: ${action.id})");
 
     if (action.buttonKeyPressed == 'MINUM') {
-      // final docId = action.payload?['docId'];
+      final docId = action.payload?['docId'];
 
-      // navigatorKey.currentState?.pushNamed(
-      //   '/camera',
-      //   arguments: {
-      //     'docId': docId,
-      //   },
-      // );
+      navigatorKey.currentState?.pushNamed(
+        '/camera',
+        arguments: {
+          'docId': docId,
+        },
+      );
       _isProcessing = true;
       await AwesomeNotifications().cancel(action.id!);
       _isProcessing = false;
@@ -109,13 +109,13 @@ class NotificationController {
         );
       }
       _isProcessing = false;
-      // navigatorKey.currentContext?.go(
-      //   '/main-screen',
-      //   extra: {
-      //     'showPopup': true,
-      //     'docId': docId,
-      //   },
-      // );
+      navigatorKey.currentContext?.go(
+        '/main-screen',
+        extra: {
+          'showPopup': true,
+          'docId': docId,
+        },
+      );
     }
     if (action.buttonKeyPressed.isEmpty) {
       print("DEBUG: user mengklik nody notifikasi.");

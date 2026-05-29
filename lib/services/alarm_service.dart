@@ -1,23 +1,18 @@
-// import 'dart:ui';
-
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart'; // Untuk debugPrint
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class AlarmService {
-  // Gunakan channelKey baru untuk mereset cache Android
-  static const String _channelKey = 'tbmate_alarm_v8';
+  // Base key untuk identitas dasar channel
+  static const String _baseChannelKey = 'tbmate_alarm_channel';
 
   static Future<String> getUserAlarmSound() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        return 'classic_alarm';
-      }
+      if (user == null) return 'classic_alarm';
 
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -26,12 +21,10 @@ class AlarmService {
 
       if (doc.exists) {
         final data = doc.data();
-
         if (data != null && data['alarmSound'] != null) {
           return data['alarmSound'];
         }
       }
-
       return 'classic_alarm';
     } catch (e) {
       debugPrint("Error ambil sound alarm: $e");
@@ -39,18 +32,18 @@ class AlarmService {
     }
   }
 
+  // Inisialisasi awal saat aplikasi terbuka (membuat channel default)
   static Future<void> init() async {
     await AwesomeNotifications().initialize(
       null,
       [
         NotificationChannel(
-          channelKey: _channelKey,
-          channelName: 'TBMate Alarm',
-          channelDescription: 'Alarm minum obat',
+          channelKey: '${_baseChannelKey}_classic_alarm',
+          channelName: 'TBMate Alarm (Classic)',
+          channelDescription: 'Alarm minum obat versi standar',
           importance: NotificationImportance.Max,
-          // defaultRingtoneType: DefaultRingtoneType.Alarm,
           playSound: true,
-          soundSource: 'resource://raw/classic_alarm',
+          soundSource: 'resource://raw/classic_alarm', // Default awal
           enableVibration: true,
           criticalAlerts: true,
           defaultColor: const Color(0xFF2E7D32),
@@ -62,6 +55,28 @@ class AlarmService {
     await requestPermissions();
   }
 
+  // Membuat channel baru secara instan jika user memilih suara berbeda di Firestore
+  static Future<String> _getOrInitializeDynamicChannel(String soundName) async {
+    final dynamicChannelKey = '${_baseChannelKey}_$soundName';
+
+    await AwesomeNotifications().setChannel(
+      NotificationChannel(
+        channelKey: dynamicChannelKey,
+        channelName: 'TBMate Alarm ($soundName)',
+        channelDescription: 'Alarm aktif menggunakan suara $soundName',
+        importance: NotificationImportance.Max,
+        playSound: true,
+        soundSource: 'resource://raw/$soundName', // Mengunci suara spesifik ke channel ini
+        enableVibration: true,
+        criticalAlerts: true,
+        defaultColor: const Color(0xFF2E7D32),
+        ledColor: const Color(0xFF2E7D32),
+      ),
+    );
+
+    return dynamicChannelKey;
+  }
+
   static Future<void> requestPermissions() async {
     bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
@@ -70,8 +85,10 @@ class AlarmService {
     if (!isAllowed) {
       await AwesomeNotifications().showAlarmPage();
     }
+    
+    // Check permission untuk basic channel
     await AwesomeNotifications().checkPermissionList(
-      channelKey: _channelKey,
+      channelKey: '${_baseChannelKey}_classic_alarm',
       permissions: [
         NotificationPermission.PreciseAlarms,
         NotificationPermission.FullScreenIntent,
@@ -85,20 +102,26 @@ class AlarmService {
     required DateTime date,
     required String docId,
   }) async {
-    debugPrint("🔥 CREATE NOTIF → docId: $docId"); // 👈 TAMBAHKAN INI
+    debugPrint("🔥 CREATE NOTIF → docId: $docId");
     if (date.isBefore(DateTime.now())) {
       debugPrint("DEBUG: Gagal menjadwalkan, waktu sudah lewat.");
       return;
     }
+
+    // 1. Ambil nama suara dari Firestore
     final selectedSound = await getUserAlarmSound();
     debugPrint("SOUND FIREBASE: $selectedSound");
-debugPrint("PATH SOUND: resource://raw/$selectedSound");
-    String localTimeZone =
-        await AwesomeNotifications().getLocalTimeZoneIdentifier();
+
+    // 2. Dapatkan Channel Key Dinamis berdasarkan jenis suara
+    final activeChannelKey = await _getOrInitializeDynamicChannel(selectedSound);
+    debugPrint("ACTIVE CHANNEL KEY: $activeChannelKey");
+
+    String localTimeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
+    
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: id,
-        channelKey: _channelKey,
+        channelKey: activeChannelKey, // 👈 Pakai channel baru di sini
         title: '💊 saatnya minum obat ya',
         body: '4 KDT RHZE, 3 tablet pukul 08.00 😊',
         notificationLayout: NotificationLayout.Default,
@@ -145,7 +168,7 @@ debugPrint("PATH SOUND: resource://raw/$selectedSound");
 
   static Future<void> repeatSnooze(
       int id, Duration duration, String docId) async {
-    debugPrint("🔥 SNOOZE → docId: $docId"); // 👈 TAMBAHKAN INI
+    debugPrint("🔥 SNOOZE → docId: $docId");
     final userId = FirebaseAuth.instance.currentUser!.uid;
     final doc = await FirebaseFirestore.instance
         .collection('users')
@@ -162,9 +185,9 @@ debugPrint("PATH SOUND: resource://raw/$selectedSound");
     final tanggal = doc['tanggal'];
     final waktu = doc['waktu_minum'];
     final DateFormat format = DateFormat("yyyy-MM-dd hh:mm a");
-    final DateTime jadwalAsli = format.parse("$tanggal ${waktu}");
+    final DateTime jadwalAsli = format.parse("$tanggal $waktu");
 
-    final DateTime jadwalBerikutnya = jadwalAsli.add(Duration(days: 1));
+    final DateTime jadwalBerikutnya = jadwalAsli.add(const Duration(days: 1));
 
     if (DateTime.now().isAfter(jadwalBerikutnya)) {
       await doc.reference.update({"status": "Terlewati"});
@@ -172,15 +195,19 @@ debugPrint("PATH SOUND: resource://raw/$selectedSound");
     }
 
     await AwesomeNotifications().cancel(id);
-    String localTimeZone =
-        await AwesomeNotifications().getLocalTimeZoneIdentifier();
+    String localTimeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
 
+    // 1. Ambil nama suara dari Firestore
     final selectedSound = await getUserAlarmSound();
+    
+    // 2. Dapatkan Channel Key Dinamis untuk Snooze
+    final activeChannelKey = await _getOrInitializeDynamicChannel(selectedSound);
+
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: id,
-        channelKey: _channelKey,
-        title: '⏰Pengingat Minum Obat',
+        channelKey: activeChannelKey, // 👈 Pakai channel baru di sini
+        title: '⏰ Pengingat Minum Obat',
         body: 'Obat belum diminum',
         category: NotificationCategory.Alarm,
         notificationLayout: NotificationLayout.Default,
