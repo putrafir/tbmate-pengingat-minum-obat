@@ -171,6 +171,7 @@ class _EditSetTime extends State<EditSetTime> {
       // }
 
       await AwesomeNotifications().cancelAllSchedules();
+      await AwesomeNotifications().cancelAllSchedules();
 
       for (var doc in snapshot.docs) {
         batch.update(doc.reference, {

@@ -51,6 +51,8 @@ dependencies:
   google_mlkit_face_detection: ^0.13.2
   permission_handler: ^12.0.1
   flutter_image_compress: ^2.0.4
+  shared_preferences: ^2.2.2
+  
 
 dev_dependencies:
   flutter_test:
@@ -99,6 +101,7 @@ flutter:
     - assets/icons/google.png
     - assets/sounds/amba.mp3
     - assets/icons/obat.svg
+    - assets/sounds/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
